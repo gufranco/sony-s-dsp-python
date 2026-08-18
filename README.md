@@ -1,6 +1,6 @@
 <div align="center">
 
-<h1>sdsp</h1>
+<h1>S-DSP</h1>
 
 <strong>A model of the Sony S-DSP that runs on the clock schedule the hardware runs on.</strong>
 
