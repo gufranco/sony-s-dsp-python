@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+title: sony-s-dsp-python
+message: >-
+  If you use this work, or the states it was settled against, please cite it.
+type: software
+authors:
+  - given-names: Gustavo
+    family-names: Franco
+    alias: gufranco
+repository-code: https://github.com/gufranco/sony-s-dsp-python
+url: https://github.com/gufranco/sony-s-dsp-python
+abstract: >-
+  A model of the Sony S-DSP, the wavetable half of the SNES audio unit. Eight
+  voices are pipelined across a thirty two clock schedule rather than run as a
+  loop, which is what makes pitch modulation, key-on sampling, and the end-of-
+  sample flag land where the hardware lands them. Settled against states taken
+  from real music dumps with audio computed by a reference implementation, and
+  nothing in it starts from a clean machine.
+keywords:
+  - emulation
+  - super-nintendo
+  - s-dsp
+  - audio
+  - adpcm
+  - hardware-model
+  - conformance
+license: MIT
+version: 1.0.0

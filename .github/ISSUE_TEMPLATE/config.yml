@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Where do I get the music?
+    url: https://github.com/gufranco/sony-s-dsp-python#faq
+    about: Not from here. Dump it from a cartridge you own, or drive the part yourself.
+  - name: The processor beside it
+    url: https://github.com/gufranco/sony-spc700-python
+    about: The S-DSP shares its sixty four kilobytes with that CPU, and they ship on one die.
