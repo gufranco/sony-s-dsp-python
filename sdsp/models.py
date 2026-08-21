@@ -7,6 +7,9 @@ repositories: a hardware difference discovered later should mean adding an entry
 rather than restructuring the package around it.
 """
 
+from collections.abc import Callable, Sequence
+from typing import Any, override
+
 
 class UnknownModelError(Exception):
     pass
@@ -15,7 +18,15 @@ class UnknownModelError(Exception):
 class Model:
     """One part: what it is, what it carries, and how to build it."""
 
-    def __init__(self, name, summary, voices, registers, core, aliases=()):
+    def __init__(
+        self,
+        name: str,
+        summary: str,
+        voices: int,
+        registers: int,
+        core: Callable[..., Any],
+        aliases: Sequence[str] = (),
+    ) -> None:
         self.name = name
         self.summary = summary
         self.voices = voices
@@ -23,14 +34,15 @@ class Model:
         self.core = core
         self.aliases = tuple(aliases)
 
-    def build(self, memory, **options):
+    def build(self, memory: Any, **options: Any) -> Any:
         return self.core(self, memory, **options)
 
-    def __repr__(self):
+    @override
+    def __repr__(self) -> str:
         return f"<Model {self.name}, {self.voices} voices>"
 
 
-def _build_sdsp(model, memory, **options):
+def _build_sdsp(model: "Model", memory: Any, **options: Any) -> Any:
     from .core import Dsp
 
     dsp = Dsp(memory, **options)
@@ -63,11 +75,11 @@ for _model in _CATALOGUE:
         _BY_ALIAS[_alias] = _model
 
 
-def _normalise(name):
+def _normalise(name: str) -> str:
     return str(name).strip().lower().replace("-", "").replace("_", "")
 
 
-def describe(name):
+def describe(name: str) -> "Model":
     """The model of that name, however it happens to be written."""
     found = _BY_ALIAS.get(_normalise(name))
     if found is None:

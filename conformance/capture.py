@@ -26,6 +26,7 @@ import collections
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 MAGIC = b"SNES-SPC700 Sound File Data"
 
@@ -44,7 +45,7 @@ REG_FLG = 0x6C
 REG_EDL = 0x7D
 
 
-def registers(path):
+def registers(path: Path | str) -> list[int] | None:
     """The DSP registers in one dump, or nothing if the file is not one.
 
     Only the register block is read back. The audio RAM in between is skipped
@@ -64,17 +65,17 @@ def registers(path):
     return list(found)
 
 
-def dumps(root, limit=None):
+def dumps(root: Path | str, limit: int | None = None) -> list[Path]:
     """Every dump under a directory, in a fixed order, up to a limit."""
     found = sorted(Path(root).rglob("*.spc"))
     return found[:limit] if limit else found
 
 
-def census(states):
+def census(states: list[list[int]]) -> dict[str, Any]:
     """What the drivers were doing, with none of what they were playing."""
-    directories = collections.Counter()
-    flags = collections.Counter()
-    delays = collections.Counter()
+    directories: collections.Counter[int] = collections.Counter()
+    flags: collections.Counter[int] = collections.Counter()
+    delays: collections.Counter[int] = collections.Counter()
     adsr = 0
     modulation = noise = echo = 0
 
@@ -104,7 +105,7 @@ def census(states):
     }
 
 
-def main(argv):
+def main(argv: list[str]) -> int:
     if len(argv) < 2:
         print("usage: capture.py <dump directory> <census out> [limit]")
         return 2

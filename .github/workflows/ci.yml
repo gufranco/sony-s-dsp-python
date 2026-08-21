@@ -65,6 +65,25 @@ jobs:
           ACTIONLINT_VERSION: "1.7.12"
           ACTIONLINT_SHA256: "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8"
 
+  types:
+    name: Types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install mypy
+        run: pipx install mypy==1.14.1
+
+      # Strict, with every optional error class the checker offers. The
+      # configuration lives in pyproject.toml so this run and a local one are
+      # the same run.
+      - name: Check types
+        run: mypy
+
   test:
     name: Tests on Python ${{ matrix.python }}
     runs-on: ubuntu-latest

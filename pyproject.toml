@@ -75,6 +75,27 @@ ignore = [
 # It prints for the same reason every tool here does: its output is the product.
 "sdsp/doctor.py" = ["BLE001", "T201"]
 
+[tool.mypy]
+# Every flag mypy has, plus the ones strict does not turn on. The errors that
+# matter in a model of hardware are the ones where a width, a mask or a None
+# crosses a boundary, and those are exactly what the optional classes catch.
+strict = true
+python_version = "3.12"
+warn_unreachable = true
+warn_no_return = true
+strict_equality = true
+extra_checks = true
+enable_error_code = [
+  "explicit-override",
+  "ignore-without-code",
+  "possibly-undefined",
+  "redundant-expr",
+  "truthy-bool",
+  "truthy-iterable",
+  "unused-awaitable",
+]
+files = ["sdsp", "conformance"]
+
 [tool.coverage.run]
 source = ["sdsp", "conformance"]
 branch = true

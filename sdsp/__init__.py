@@ -13,6 +13,8 @@ two clock schedule in which the voices are pipelined rather than sequential.
 Nothing starts clean. Audio RAM holds whatever it held.
 """
 
+from typing import Any
+
 from .core import (
     ENV_ATTACK,
     ENV_DECAY,
@@ -34,7 +36,7 @@ __version__ = VERSION
 DEFAULT_MODEL = "s-dsp"
 
 
-def Sdsp(memory, model=DEFAULT_MODEL, **options):  # noqa: N802
+def Sdsp(memory: Any, model: str = DEFAULT_MODEL, **options: Any) -> Any:  # noqa: N802
     """A chip of the named model, sharing one interface across the family."""
     return describe(model).build(memory, **options)
 

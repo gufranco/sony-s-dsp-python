@@ -17,8 +17,28 @@ Nothing here starts clean. Audio RAM holds whatever it held, and the registers a
 reset does not define hold whatever they held.
 """
 
+from collections.abc import Callable
+from typing import Protocol
+
 from .memory import UNSET_SEED, scramble
 from .tables import COUNTER_OFFSETS, COUNTER_RANGE, COUNTER_RATES, GAUSSIAN
+
+Step = Callable[["Dsp"], None]
+"""One entry of the thirty two step cycle the DSP walks per sample."""
+
+
+class MemoryLike(Protocol):
+    """The whole of what the DSP needs from the audio RAM it is wired to.
+
+    Naming the two methods rather than the class keeps a caller free to supply
+    real RAM, a test double, or the memory of a running SPC700, and keeps this
+    module from importing any of them.
+    """
+
+    def read8(self, address: int) -> int: ...
+
+    def write8(self, address: int, value: int) -> None: ...
+
 
 REGISTER_COUNT = 128
 VOICE_COUNT = 8
@@ -65,7 +85,7 @@ ECHO_HISTORY = 8
 RESET_FLAGS = 0xE0
 
 
-def _clamp16(value):
+def _clamp16(value: int) -> int:
     if value > 0x7FFF:
         return 0x7FFF
     if value < -0x8000:
@@ -73,12 +93,12 @@ def _clamp16(value):
     return value
 
 
-def _signed8(value):
+def _signed8(value: int) -> int:
     value &= 0xFF
     return value - 0x100 if value & 0x80 else value
 
 
-def _signed16(value):
+def _signed16(value: int) -> int:
     value &= 0xFFFF
     return value - 0x10000 if value & 0x8000 else value
 
@@ -86,7 +106,7 @@ def _signed16(value):
 class Voice:
     """One of the eight voices, and everything it carries between samples."""
 
-    def __init__(self, index):
+    def __init__(self, index: int) -> None:
         self.index = index
         self.bit = 1 << index
         self.base = index * 0x10
@@ -105,7 +125,7 @@ class Voice:
 class Dsp:
     """An S-DSP holding whatever it was holding, which is how one powers up."""
 
-    def __init__(self, memory, seed=UNSET_SEED, reset=True):
+    def __init__(self, memory: MemoryLike, seed: int = UNSET_SEED, reset: bool = True) -> None:
         self.memory = memory
         self.registers = bytearray(scramble(REGISTER_COUNT, seed))
         self.voices = [Voice(index) for index in range(VOICE_COUNT)]
@@ -114,7 +134,7 @@ class Dsp:
         if reset:
             self.reset()
 
-    def _clear_state(self):
+    def _clear_state(self) -> None:
         self.phase = 0
         self.counter = 0
         self.noise = 0x4000
@@ -149,9 +169,9 @@ class Dsp:
         self.endx_buffer = 0
         self.outx_buffer = 0
         self.envx_buffer = 0
-        self.rendered = []
+        self.rendered: list[int] = []
 
-    def reset(self):
+    def reset(self) -> None:
         """Put the DSP where a reset puts it, which is quiet and released."""
         self._clear_state()
         for index in range(REGISTER_COUNT):
@@ -169,10 +189,10 @@ class Dsp:
             voice.hidden_envelope = 0
             voice.envelope_out = 0
 
-    def read(self, address):
+    def read(self, address: int) -> int:
         return self.registers[address & 0x7F]
 
-    def write(self, address, value):
+    def write(self, address: int, value: int) -> None:
         """Take a register write, and act on the ones that are not just storage."""
         address &= 0x7F
         value &= 0xFF
@@ -183,18 +203,18 @@ class Dsp:
             self.registers[REG_ENDX] = 0
             self.endx_buffer = 0
 
-    def _voice_register(self, voice, offset):
+    def _voice_register(self, voice: Voice, offset: int) -> int:
         return self.registers[voice.base + offset]
 
-    def _read_counter(self, rate):
+    def _read_counter(self, rate: int) -> bool:
         if rate == 0:
             return True
         return bool((self.counter + COUNTER_OFFSETS[rate]) % COUNTER_RATES[rate])
 
-    def _run_counters(self):
+    def _run_counters(self) -> None:
         self.counter = (self.counter - 1) % COUNTER_RANGE
 
-    def _interpolate(self, voice):
+    def _interpolate(self, voice: Voice) -> int:
         position = voice.interpolation
         at = (position >> 12) + voice.buffer_position
         offset = position >> 4 & 0xFF
@@ -208,7 +228,7 @@ class Dsp:
         out += (GAUSSIAN[reverse] * voice.buffer[at + 3]) >> 11
         return _clamp16(out) & ~1
 
-    def _decode_brr(self, voice):
+    def _decode_brr(self, voice: Voice) -> None:
         """Expand four samples of a block, filtering against the two before them."""
         nybbles = self.t_brr_byte * 0x100 + self.memory.read8(
             (voice.brr_address + voice.brr_offset + 1) & 0xFFFF
@@ -251,7 +271,7 @@ class Dsp:
             voice.buffer[at + BRR_BUFFER] = sample
             at += 1
 
-    def _run_envelope(self, voice):
+    def _run_envelope(self, voice: Voice) -> None:
         envelope = voice.envelope
         if voice.envelope_mode == ENV_RELEASE:
             envelope -= 0x8
@@ -300,11 +320,11 @@ class Dsp:
         if not self._read_counter(rate):
             voice.envelope = envelope
 
-    def voice_1(self, voice):
+    def voice_1(self, voice: Voice) -> None:
         self.t_dir_address = (self.t_dir * 0x100 + self.t_srcn * 4) & 0xFFFF
         self.t_srcn = self._voice_register(voice, V_SRCN)
 
-    def voice_2(self, voice):
+    def voice_2(self, voice: Voice) -> None:
         entry = self.t_dir_address
         if not voice.key_on_delay:
             entry += 2
@@ -314,14 +334,14 @@ class Dsp:
         self.t_adsr0 = self._voice_register(voice, V_ADSR0)
         self.t_pitch = self._voice_register(voice, V_PITCHL)
 
-    def voice_3a(self, voice):
+    def voice_3a(self, voice: Voice) -> None:
         self.t_pitch += (self._voice_register(voice, V_PITCHH) & 0x3F) << 8
 
-    def voice_3b(self, voice):
+    def voice_3b(self, voice: Voice) -> None:
         self.t_brr_byte = self.memory.read8((voice.brr_address + voice.brr_offset) & 0xFFFF)
         self.t_brr_header = self.memory.read8(voice.brr_address & 0xFFFF)
 
-    def voice_3c(self, voice):
+    def voice_3c(self, voice: Voice) -> None:
         if self.t_pmon & voice.bit:
             self.t_pitch += ((self.t_output >> 5) * self.t_pitch) >> 10
 
@@ -362,13 +382,13 @@ class Dsp:
         if not voice.key_on_delay:
             self._run_envelope(voice)
 
-    def _voice_output(self, voice, channel):
+    def _voice_output(self, voice: Voice, channel: int) -> None:
         amplitude = (self.t_output * _signed8(self._voice_register(voice, V_VOLL + channel))) >> 7
         self.main_out[channel] = _clamp16(self.main_out[channel] + amplitude)
         if self.t_eon & voice.bit:
             self.echo_out[channel] = _clamp16(self.echo_out[channel] + amplitude)
 
-    def voice_4(self, voice):
+    def voice_4(self, voice: Voice) -> None:
         self.t_looped = 0
         if voice.interpolation >= 0x4000:
             self._decode_brr(voice)
@@ -384,45 +404,45 @@ class Dsp:
         voice.interpolation = min(voice.interpolation, 0x7FFF)
         self._voice_output(voice, 0)
 
-    def voice_5(self, voice):
+    def voice_5(self, voice: Voice) -> None:
         self._voice_output(voice, 1)
         endx = self.registers[REG_ENDX] | self.t_looped
         if voice.key_on_delay == 5:
             endx &= ~voice.bit
         self.endx_buffer = endx & 0xFF
 
-    def voice_6(self, voice):
+    def voice_6(self, voice: Voice) -> None:
         self.outx_buffer = (self.t_output >> 8) & 0xFF
 
-    def voice_7(self, voice):
+    def voice_7(self, voice: Voice) -> None:
         self.registers[REG_ENDX] = self.endx_buffer
         self.envx_buffer = voice.envelope_out
 
-    def voice_8(self, voice):
+    def voice_8(self, voice: Voice) -> None:
         self.registers[voice.base + V_OUTX] = self.outx_buffer
 
-    def voice_9(self, voice):
+    def voice_9(self, voice: Voice) -> None:
         self.registers[voice.base + V_ENVX] = self.envx_buffer
 
-    def voice_3(self, voice):
+    def voice_3(self, voice: Voice) -> None:
         self.voice_3a(voice)
         self.voice_3b(voice)
         self.voice_3c(voice)
 
-    def misc_27(self):
+    def misc_27(self) -> None:
         self.t_pmon = self.registers[REG_PMON] & 0xFE
 
-    def misc_28(self):
+    def misc_28(self) -> None:
         self.t_non = self.registers[REG_NON]
         self.t_eon = self.registers[REG_EON]
         self.t_dir = self.registers[REG_DIR]
 
-    def misc_29(self):
+    def misc_29(self) -> None:
         self.every_other_sample ^= 1
         if self.every_other_sample:
             self.new_kon &= ~self.kon & 0xFF
 
-    def misc_30(self):
+    def misc_30(self) -> None:
         if self.every_other_sample:
             self.kon = self.new_kon
             self.t_koff = self.registers[REG_KOFF]
@@ -431,20 +451,20 @@ class Dsp:
             feedback = (self.noise << 13) ^ (self.noise << 14)
             self.noise = (feedback & 0x4000) ^ (self.noise >> 1)
 
-    def _echo_address(self, channel):
+    def _echo_address(self, channel: int) -> int:
         return (self.echo_pointer + channel * 2) & 0xFFFF
 
-    def _echo_read(self, channel):
+    def _echo_read(self, channel: int) -> None:
         at = self._echo_address(channel)
         sample = _signed16(self.memory.read8(at) | (self.memory.read8((at + 1) & 0xFFFF) << 8))
         self.echo_history[self.echo_history_position][channel] = sample >> 1
         self.echo_history[self.echo_history_position + ECHO_HISTORY][channel] = sample >> 1
 
-    def _fir(self, tap, channel):
+    def _fir(self, tap: int, channel: int) -> int:
         held = self.echo_history[self.echo_history_position + tap + 1][channel]
         return (held * _signed8(self.registers[REG_FIR + tap * 0x10])) >> 6
 
-    def echo_22(self):
+    def echo_22(self) -> None:
         self.echo_history_position += 1
         if self.echo_history_position >= ECHO_HISTORY:
             self.echo_history_position = 0
@@ -452,23 +472,23 @@ class Dsp:
         self._echo_read(0)
         self.echo_in = [self._fir(0, 0), self._fir(0, 1)]
 
-    def echo_23(self):
+    def echo_23(self) -> None:
         self.echo_in[0] += self._fir(1, 0) + self._fir(2, 0)
         self.echo_in[1] += self._fir(1, 1) + self._fir(2, 1)
         self._echo_read(1)
 
-    def echo_24(self):
+    def echo_24(self) -> None:
         self.echo_in[0] += self._fir(3, 0) + self._fir(4, 0) + self._fir(5, 0)
         self.echo_in[1] += self._fir(3, 1) + self._fir(4, 1) + self._fir(5, 1)
 
-    def echo_25(self):
+    def echo_25(self) -> None:
         left = _signed16(self.echo_in[0] + self._fir(6, 0))
         right = _signed16(self.echo_in[1] + self._fir(6, 1))
         left += _signed16(self._fir(7, 0))
         right += _signed16(self._fir(7, 1))
         self.echo_in = [_clamp16(left) & ~1, _clamp16(right) & ~1]
 
-    def _echo_output(self, channel):
+    def _echo_output(self, channel: int) -> int:
         main = _signed16(
             (self.main_out[channel] * _signed8(self.registers[REG_MVOLL + channel * 0x10])) >> 7
         )
@@ -477,14 +497,14 @@ class Dsp:
         )
         return _clamp16(main + echo)
 
-    def echo_26(self):
+    def echo_26(self) -> None:
         self.main_out[0] = self._echo_output(0)
         feedback = _signed8(self.registers[REG_EFB])
         left = self.echo_out[0] + _signed16((self.echo_in[0] * feedback) >> 7)
         right = self.echo_out[1] + _signed16((self.echo_in[1] * feedback) >> 7)
         self.echo_out = [_clamp16(left) & ~1, _clamp16(right) & ~1]
 
-    def echo_27(self):
+    def echo_27(self) -> None:
         left = self.main_out[0]
         right = self._echo_output(1)
         self.main_out = [0, 0]
@@ -494,10 +514,10 @@ class Dsp:
         self.rendered.append(left)
         self.rendered.append(right)
 
-    def echo_28(self):
+    def echo_28(self) -> None:
         self.echo_enabled = self.registers[REG_FLG]
 
-    def _echo_write(self, channel):
+    def _echo_write(self, channel: int) -> None:
         if not self.echo_enabled & FLG_ECHO_OFF:
             at = self._echo_address(channel)
             value = self.echo_out[channel] & 0xFFFF
@@ -505,7 +525,7 @@ class Dsp:
             self.memory.write8((at + 1) & 0xFFFF, value >> 8)
         self.echo_out[channel] = 0
 
-    def echo_29(self):
+    def echo_29(self) -> None:
         self.t_esa = self.registers[REG_ESA]
         if not self.echo_offset:
             self.echo_length = (self.registers[REG_EDL] & 0x0F) * 0x800
@@ -515,43 +535,42 @@ class Dsp:
         self._echo_write(0)
         self.echo_enabled = self.registers[REG_FLG]
 
-    def echo_30(self):
+    def echo_30(self) -> None:
         self._echo_write(1)
 
-    def clock(self):
+    def clock(self) -> None:
         """One of the thirty two clocks a sample is made of."""
         for step in SCHEDULE[self.phase]:
             step(self)
         self.phase = (self.phase + 1) & 31
 
-    def run(self, clocks):
+    def run(self, clocks: int) -> None:
         """Run for that many clocks, thirty two of which make one sample."""
         for _ in range(clocks):
             self.clock()
-        return self
 
-    def render(self, samples):
+    def render(self, samples: int) -> list[int]:
         """Run long enough to produce that many stereo samples, and return them."""
         self.rendered = []
         self.run(samples * 32)
         return list(self.rendered)
 
 
-def _voice_step(name, index):
-    def run(dsp):
+def _voice_step(name: str, index: int) -> "Step":
+    def run(dsp: "Dsp") -> None:
         getattr(dsp, name)(dsp.voices[index])
 
     return run
 
 
-def _plain_step(name):
-    def run(dsp):
+def _plain_step(name: str) -> "Step":
+    def run(dsp: "Dsp") -> None:
         getattr(dsp, name)()
 
     return run
 
 
-PIPELINE = {
+PIPELINE: dict[int, list[str | tuple[str, int]]] = {
     0: [("voice_5", 0), ("voice_2", 1)],
     1: [("voice_6", 0), ("voice_3", 1)],
     2: [("voice_7", 0), ("voice_1", 3), ("voice_4", 1)],

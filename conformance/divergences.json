@@ -1,0 +1,75 @@
+{
+  "comment": "Every place the document and the reference part company, and every place this model is deliberately not claiming something. Each entry says what the document says, what the reference does, which one this package follows, and what evidence would settle it.",
+  "sources": {
+    "document": "Nintendo SNES Development Manual, Book 1, the sound source chapters. Pinned in hardware.json.",
+    "reference": "snes9x 1.63 SPC_DSP.cpp, driven through conformance/ref and captured into corpus.json. An emulator, which is the lowest rung this family recognises and is evidence about that program rather than about the chip."
+  },
+  "divergences": [
+    {
+      "id": "the-audio-rests-on-an-emulator",
+      "parts": ["s-dsp"],
+      "severity": "high",
+      "status": "open",
+      "documentSays": "Times and frequencies for the envelope and the noise clock, the register map, the BRR block format, and nothing at all about the sample values the chip produces.",
+      "referenceDoes": "Produces sample values, which is what corpus.json records.",
+      "packageFollows": "reference",
+      "reasoning": "The audio this model produces is checked against an emulator, and no better source is currently on the machine. That is worth stating plainly rather than leaving implied by the file names: agreement with the corpus means agreement with snes9x, and where snes9x is wrong this model is wrong with it. The tables underneath the audio no longer rest on that: every entry of the rate table is now checked against Nintendo's own noise clock frequencies, and every attack time against Nintendo's own figures.",
+      "wouldSettleIt": "A recording taken off a real S-SMP: a known BRR sample, a known register state, and the digital output captured. Failing that, an FPGA core derived from a die photograph rather than from an emulator."
+    },
+    {
+      "id": "unstated-decay-endpoint",
+      "parts": ["s-dsp"],
+      "severity": "medium",
+      "status": "open",
+      "documentSays": "Table 3-7-2 gives a time for each decay rate \"from 1 to SL\" and for each sustain rate. It never says what level the measurement stops at, and \"SL\" cannot be the answer for the sustain column, which has no SL.",
+      "referenceDoes": "Falls by one two hundred and fifty sixth per tick, which is the factor the manual itself prints. Dividing each of the 39 printed figures by this model's tick period for that rate gives 576 to 600 ticks, median 590: one endpoint, to within four per cent across the whole table.",
+      "packageFollows": "document",
+      "reasoning": "The tightness of that spread is the result worth having. It says the model's rate table reproduces every printed exponential figure exactly in relative terms, and that the only thing missing is a constant nobody wrote down. After 590 ticks this model's envelope stands at 105, about a nineteenth of full scale, which is not any of the eight sustain levels the manual defines. Rather than bend the model to land on a number the document never gives, the endpoint is recovered here and left where it is.",
+      "wouldSettleIt": "A measurement of a real S-DSP: key on a voice at a known decay rate, capture the envelope readback register, and see what level it holds when the printed time has elapsed."
+    },
+    {
+      "id": "gaussian-kernel-is-undocumented",
+      "parts": ["s-dsp"],
+      "severity": "high",
+      "status": "open",
+      "documentSays": "Nothing. Pitch is described as a fourteen bit value across P(L) and P(H) and the manual never gives the filter that resamples a decoded sample to it.",
+      "referenceDoes": "Carries a 512 entry table, one quarter of a symmetric curve, which this model reproduces.",
+      "packageFollows": "reference",
+      "reasoning": "This is the single largest thing in the model with no manufacturer source. It shapes every sample the chip emits, so an error in it is audible everywhere and is invisible to every check in hardware.test.py, which can only reach the tables the manual describes.",
+      "wouldSettleIt": "A die photograph of the coefficient ROM, or a measurement: feed a known impulse at a known pitch and read the output back."
+    },
+    {
+      "id": "no-sony-document-for-this-part",
+      "parts": ["s-dsp"],
+      "severity": "medium",
+      "status": "open",
+      "documentSays": "Nintendo documents the DSP as a licensee-facing register reference. It is not a Sony datasheet and does not describe the silicon.",
+      "referenceDoes": "n/a",
+      "packageFollows": "document",
+      "reasoning": "Nintendo shipped the part and wrote the manual its licensees programmed against, which makes this manufacturer documentation for the purpose. It is still one source, written to be programmed against rather than to describe a device.",
+      "wouldSettleIt": "A Sony S-DSP datasheet. Searched on 2026-08-21; nothing was found."
+    },
+    {
+      "id": "nothing-here-is-a-timing-claim",
+      "parts": ["s-dsp"],
+      "severity": "medium",
+      "status": "notModelled",
+      "documentSays": "Describes the DSP entirely in times and frequencies. It gives no cycle count anywhere, and the register map notes only that the DSP rewrites ENVX \"at each Ts\".",
+      "referenceDoes": "Runs a sample at a time, in the order snes9x chose.",
+      "packageFollows": "reference",
+      "reasoning": "This model produces one sample per call and claims nothing about when within a sample period a register is read or written. That ordering is real on the hardware and matters to a driver that writes mid-sample, and no source on this machine settles it. It is not modelled rather than modelled wrongly.",
+      "wouldSettleIt": "A cycle level trace of the S-SMP bus while the DSP runs, or a Sony document."
+    },
+    {
+      "id": "power-on-state-is-not-documented",
+      "parts": ["s-dsp"],
+      "severity": "low",
+      "status": "open",
+      "documentSays": "Nothing about what any register holds at power on.",
+      "referenceDoes": "Starts from whatever the harness put there.",
+      "packageFollows": "neither",
+      "reasoning": "Nothing here begins cleared. A register that has not been written holds an arbitrary value derived from a seed, so a driver that depends on a register it never wrote fails visibly rather than working by accident.",
+      "wouldSettleIt": "A measurement of a real S-SMP immediately after power on, repeated across parts."
+    }
+  ]
+}

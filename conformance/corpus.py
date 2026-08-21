@@ -29,7 +29,9 @@ import json
 import random
 import struct
 import sys
+from collections.abc import Mapping
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -52,13 +54,14 @@ FIRST_SAMPLE = 0x1000
 SPACE = 0x10000
 
 
-def load(path=None):
+def load(path: Path | str | None = None) -> dict[str, Any]:
     """The corpus, from where it was asked for or from the one that ships."""
     with Path(path or DEFAULT_CORPUS).open() as handle:
-        return json.load(handle)
+        loaded: dict[str, Any] = json.load(handle)
+    return loaded
 
 
-def ram_for(case):
+def ram_for(case: Mapping[str, Any]) -> Any:
     """Sample data built from a seed, laid out where the real registers point.
 
     The registers are real, so the sample directory page and every voice's source
@@ -88,7 +91,7 @@ def ram_for(case):
     return bytes(ram)
 
 
-def render(case):
+def render(case: Mapping[str, Any]) -> list[int]:
     """What this DSP produces for one case, sample for sample."""
     registers = case["registers"]
     dsp = Dsp(Memory(fill=ram_for(case)))
@@ -100,7 +103,7 @@ def render(case):
     return dsp.render(case["samples"])
 
 
-def _label(case):
+def _label(case: Mapping[str, Any]) -> str:
     """A name for a case, safe to build even when the case is malformed."""
     registers = case.get("registers")
     if isinstance(registers, list) and len(registers) > REG_DIR:
@@ -108,7 +111,7 @@ def _label(case):
     return "a case with no register file"
 
 
-def check(case):
+def check(case: Mapping[str, Any]) -> str | None:
     """What went wrong with one case, or nothing when it agreed."""
     try:
         produced = render(case)
@@ -122,10 +125,10 @@ def check(case):
     return f"{_label(case)}: want {case['output_sha256'][:16]} got {digest[:16]}"
 
 
-def run(cases):
+def run(cases: list[dict[str, Any]]) -> tuple[int, int, list[str]]:
     """How many cases agreed, how many did not, and a few that did not."""
     passed = failed = 0
-    examples = []
+    examples: list[str] = []
     for case in cases:
         wrong = check(case)
         if wrong is None:
@@ -137,7 +140,7 @@ def run(cases):
     return passed, failed, examples
 
 
-def main(argv):
+def main(argv: list[str]) -> int:
     path = Path(argv[0]) if argv else DEFAULT_CORPUS
     if not path.is_file():
         print(f"  no corpus at {path}")

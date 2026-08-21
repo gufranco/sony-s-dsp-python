@@ -23,7 +23,7 @@
   <a href="https://github.com/gufranco/sony-s-dsp-python/issues">Issues</a>
 </p>
 
-**8** voices · **32** clocks per sample · **240** cases from real game configurations, **0** failures · **15,360** samples cross-checked · **130** tests · **100%** statement and branch coverage
+**8** voices · **32** clocks per sample · every **rate**, every **attack time** and every **register address** checked against Nintendo's own tables · **240** cases from real game configurations, **0** failures · **15,360** samples cross-checked · **196** tests · **100%** statement and branch coverage
 
 ```python
 from sdsp import Sdsp, Memory
@@ -160,11 +160,61 @@ python3 conformance/capture.py "/path/to/spc/collection" census.json 500
 
 The census stays on your machine, and so does anything you build from it with real sample data.
 
+## Where the facts come from
+
+Two sources, and they are not equally strong. Saying which is which is the point
+of this section.
+
+**Nintendo's SNES Development Manual** documents the DSP as a register map and
+four tables of times and frequencies. [`conformance/hardware.json`](conformance/hardware.json)
+pins all of them with the page each was read from, and
+[`conformance/hardware.test.py`](conformance/hardware.test.py) holds this model
+to them. That covers every register address, every one of the 32 rate table
+entries, and every attack time.
+
+**snes9x** decides the rest, which is the audio itself. That is an emulator, and
+agreement with it means agreement with that program rather than with the chip.
+[`conformance/divergences.json`](conformance/divergences.json) says so as its
+first and highest-severity entry, along with what a real recording would settle.
+
+> [!NOTE]
+> The manual's OCR text layer interleaves the table columns. Every figure was
+> read off a rendered page image instead.
+
+### The strongest check here is the noise clock
+
+Table 3-7-4 gives a frequency for each of the 32 values of the noise clock
+field. Each one is 32000 divided by one entry of the rate table this whole model
+is built around, so the table is pinned entry by entry rather than by the ratios
+between its entries. All 32 agree to the two significant figures Nintendo prints
+them at.
+
+The attack column pins the same table a second way, and absolutely: the step is
+one sixty fourth, so a climb takes 64 ticks, and all 16 printed times come out
+right.
+
+### One number the manual leaves out
+
+Its decay and sustain columns give times without saying what level the fall is
+measured to, and the sustain column has no sustain level to measure to at all.
+
+Dividing each of the 39 printed figures by this model's tick period for that rate
+gives between 576 and 600 ticks. One endpoint, to within four per cent across the
+whole table. That says the rate table reproduces every exponential figure and
+that what is missing is a constant rather than a behaviour.
+
+The constant is recovered and written down rather than folded into the model,
+because a number nobody printed is not a fact.
+
 ## How this is proved
 
 | What | Oracle | Strength |
 |:-----|:-------|:---------|
-| Whole chip | 15,360 samples against snes9x's `SPC_DSP.cpp` | Cross-checked, independent implementation |
+| Register map | Nintendo's table 3-7-1 | Manufacturer, exhaustive |
+| Rate table | Nintendo's noise clock table 3-7-4, all 32 rows | Manufacturer, exhaustive |
+| Attack times | Nintendo's table 3-7-2, all 16 rows | Manufacturer, exhaustive |
+| Decay and sustain | Nintendo's table 3-7-2, all 39 rows, relative to one endpoint the manual omits | Manufacturer, relative |
+| Whole chip | 15,360 samples against snes9x's `SPC_DSP.cpp` | An emulator, which is the weakest rung here |
 | Real configurations | 240 register states from real music dumps | Shaped by hardware |
 | BRR filters | All four filters, every shift including the clamped range | Behavioural |
 | Envelopes | ADSR plus all four gain modes | Behavioural |
@@ -203,6 +253,9 @@ sdsp/
 conformance/
   corpus.py       replays the corpus and reports what disagreed
   corpus.json     240 real configurations with reference audio
+  hardware.json     Nintendo's tables, pinned table by table
+  hardware.test.py  this model's rates and addresses against those tables
+  divergences.json  every place a source is weak, and what would strengthen it
   capture.py      reads register states out of dumps you own
   ref/            the reference driver, built around the chip's own C source
 ```
@@ -223,6 +276,7 @@ for f in sdsp/*.test.py conformance/*.test.py; do python3 "$f"; done
 | Models | [`sdsp/models.test.py`](sdsp/models.test.py) | The catalogue, alias matching, construction |
 | Corpus | [`conformance/corpus.test.py`](conformance/corpus.test.py) | The whole shipped set, sample layout, reporting |
 | Capture | [`conformance/capture.test.py`](conformance/capture.test.py) | Dump parsing, the census, and that no audio is read |
+| Tables against Nintendo | [`conformance/hardware.test.py`](conformance/hardware.test.py) | Every register address, all 32 noise clock rows, all 16 attack times, and the endpoint the manual omits |
 
 Coverage is enforced at 100% of statements and branches by [`pyproject.toml`](pyproject.toml).
 
@@ -232,6 +286,7 @@ Coverage is enforced at 100% of statements and branches by [`pyproject.toml`](py
 |:--------|:------------|
 | `ruff format .` | Format |
 | `ruff check .` | Lint |
+| `mypy` | Types, strict |
 | `python3 -m coverage report` | Coverage, which fails below 100% |
 | `python3 conformance/corpus.py [file]` | Run the corpus |
 | `python3 conformance/capture.py <dir> <out> [limit]` | Read dumps you own |

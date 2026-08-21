@@ -1,0 +1,612 @@
+{
+  "document": {
+    "publisher": "Nintendo of America Inc.",
+    "title": "SNES Development Manual, Book 1",
+    "section": "Book 3, the SNES sound source: chapter 7 Register Used, chapter 2 BRR",
+    "readOn": "2026-08-21",
+    "retrievedFrom": "archive.org/details/SNESDevManual, book1_text.pdf",
+    "sha256": "f1405241000046abba7849376d2ec53cf85f1ad2e9950d69a7c2cf1f3ff6b791",
+    "pages": 240,
+    "note": "A scan with an OCR text layer. The register map and the parameter tables were read off rendered page images at 200 dots per inch, because the text layer interleaves the table columns and reorders the numbers."
+  },
+  "registerMap": {
+    "manualTable": "3-7-1",
+    "manualPage": "3-7-1",
+    "pdfPage": 168,
+    "voice": [
+      {
+        "offset": "00",
+        "register": "VOL (L)",
+        "function": "Left Channel Volume"
+      },
+      {
+        "offset": "01",
+        "register": "VOL (R)",
+        "function": "Right Channel Volume"
+      },
+      {
+        "offset": "02",
+        "register": "P (L)",
+        "function": "The total 14 bits of P(H) and P(L) express Pitch Height"
+      },
+      {
+        "offset": "03",
+        "register": "P (H)",
+        "function": "The total 14 bits of P(H) and P(L) express Pitch Height"
+      },
+      {
+        "offset": "04",
+        "register": "SRCN",
+        "function": "Designates source number from 0-255"
+      },
+      {
+        "offset": "05",
+        "register": "ADSR (1)",
+        "function": "Address is designated by D7=1 of ADSR(1); when D7=0, Gain is operative"
+      },
+      {
+        "offset": "06",
+        "register": "ADSR (2)",
+        "function": "Address is designated by D7=1 of ADSR(1); when D7=0, Gain is operative"
+      },
+      {
+        "offset": "07",
+        "register": "GAIN",
+        "function": "Envelope can be freely designated by the program"
+      },
+      {
+        "offset": "08",
+        "register": "ENVX",
+        "function": "Present value of envelope which DSP rewrites at each Ts"
+      },
+      {
+        "offset": "09",
+        "register": "OUTX",
+        "function": "Value after envelope multiplication & before VOL multiplication (present wave height value)"
+      }
+    ],
+    "voiceStride": {
+      "quote": "10 ~ 19 Voice 1, 20 ~ 29 Voice 2, 30 ~ 39 Voice 3, 40 ~ 49 Voice 4, 50 ~ 59 Voice 5, 60 ~ 69 Voice 6, 70 ~ 79 Voice 7. Same as Voice 0",
+      "stride": 16,
+      "voices": 8
+    },
+    "global": [
+      {
+        "address": "0C",
+        "register": "MVOL (L)",
+        "function": "Main Volume (L)"
+      },
+      {
+        "address": "1C",
+        "register": "MVOL (R)",
+        "function": "Main Volume (R)"
+      },
+      {
+        "address": "2C",
+        "register": "EVOL (L)",
+        "function": "Echo Volume (L)"
+      },
+      {
+        "address": "3C",
+        "register": "EVOL (R)",
+        "function": "Echo Volume (R)"
+      },
+      {
+        "address": "4C",
+        "register": "KON",
+        "function": "Key On, D0-D7 correspond to Voice0-Voice7"
+      },
+      {
+        "address": "5C",
+        "register": "KOF",
+        "function": "Key Off"
+      },
+      {
+        "address": "6C",
+        "register": "FLG",
+        "function": "Designated on/off of reset, mute, echo, and noise clock"
+      },
+      {
+        "address": "7C",
+        "register": "ENDX",
+        "function": "Indicates source end block"
+      },
+      {
+        "address": "0D",
+        "register": "EFB",
+        "function": "Echo Feedback"
+      },
+      {
+        "address": "1D",
+        "register": "---",
+        "function": "Not Used"
+      },
+      {
+        "address": "2D",
+        "register": "PMON",
+        "function": "Pitch modulation of Voice i with OUTX of Voice (i-1) as modulated wave"
+      },
+      {
+        "address": "3D",
+        "register": "NON",
+        "function": "Noise on/off, D0-D7 correspond to Voice0-Voice7"
+      },
+      {
+        "address": "4D",
+        "register": "EON",
+        "function": "Echo On/Off"
+      },
+      {
+        "address": "5D",
+        "register": "DIR",
+        "function": "Off-set address of source directory"
+      },
+      {
+        "address": "6D",
+        "register": "ESA",
+        "function": "Off-set address of echo region, Echo Start Address"
+      },
+      {
+        "address": "7D",
+        "register": "EDL",
+        "function": "Echo Delay. Only lower level 4 bits active."
+      }
+    ],
+    "filterCoefficients": {
+      "addresses": ["0F", "1F", "2F", "3F", "4F", "5F", "6F", "7F"],
+      "quote": "Echo Filter coefficients. Makes up an 8 tap FIR Filter (Both Lch & Rch have the same filter)"
+    },
+    "writtenByTheDsp": {
+      "registers": ["ENVX", "OUTX", "ENDX"],
+      "quote": "Register written to by DSP during conditions of activity."
+    }
+  },
+  "envelope": {
+    "manualTable": "3-7-2",
+    "manualPage": "3-7-3",
+    "pdfPage": 170,
+    "modeSelect": {
+      "quote": "When D7 of ADSR(1) = \"1\", these two bytes become operable. (ADSR mode)",
+      "bit": 7,
+      "register": "ADSR (1)"
+    },
+    "steps": {
+      "quote": "AR is added to the fixed value \"1/64\" and DR, SR by the fixed value \"1-1/256\". When in the state of \"Key Off\", the \"click\" sound is prevented by the addition of the fixed value \"1/256\". (GAIN mode is identical.)",
+      "attackStep": "1/64",
+      "decayFactor": "1-1/256",
+      "keyOffStep": "1/256"
+    },
+    "attack": [
+      {
+        "ar": "0",
+        "time": "4.1 sec"
+      },
+      {
+        "ar": "1",
+        "time": "2.6 sec"
+      },
+      {
+        "ar": "2",
+        "time": "1.5 sec"
+      },
+      {
+        "ar": "3",
+        "time": "1.0 sec"
+      },
+      {
+        "ar": "4",
+        "time": "640 msec"
+      },
+      {
+        "ar": "5",
+        "time": "380 msec"
+      },
+      {
+        "ar": "6",
+        "time": "260 msec"
+      },
+      {
+        "ar": "7",
+        "time": "160 msec"
+      },
+      {
+        "ar": "8",
+        "time": "96 msec"
+      },
+      {
+        "ar": "9",
+        "time": "64 msec"
+      },
+      {
+        "ar": "A",
+        "time": "40 msec"
+      },
+      {
+        "ar": "B",
+        "time": "24 msec"
+      },
+      {
+        "ar": "C",
+        "time": "16 msec"
+      },
+      {
+        "ar": "D",
+        "time": "10 msec"
+      },
+      {
+        "ar": "E",
+        "time": "6 msec"
+      },
+      {
+        "ar": "F",
+        "time": "0 msec"
+      }
+    ],
+    "decay": [
+      {
+        "dr": "0",
+        "time": "1.2 sec",
+        "measuredFrom": "1",
+        "measuredTo": "SL"
+      },
+      {
+        "dr": "1",
+        "time": "740 msec",
+        "measuredFrom": "1",
+        "measuredTo": "SL"
+      },
+      {
+        "dr": "2",
+        "time": "440 msec",
+        "measuredFrom": "1",
+        "measuredTo": "SL"
+      },
+      {
+        "dr": "3",
+        "time": "290 msec",
+        "measuredFrom": "1",
+        "measuredTo": "SL"
+      },
+      {
+        "dr": "4",
+        "time": "180 msec",
+        "measuredFrom": "1",
+        "measuredTo": "SL"
+      },
+      {
+        "dr": "5",
+        "time": "110 msec",
+        "measuredFrom": "1",
+        "measuredTo": "SL"
+      },
+      {
+        "dr": "6",
+        "time": "74 msec",
+        "measuredFrom": "1",
+        "measuredTo": "SL"
+      },
+      {
+        "dr": "7",
+        "time": "37 msec",
+        "measuredFrom": "1",
+        "measuredTo": "SL"
+      }
+    ],
+    "sustainLevel": [
+      {
+        "sl": "0",
+        "ratio": "1/8"
+      },
+      {
+        "sl": "1",
+        "ratio": "2/8"
+      },
+      {
+        "sl": "2",
+        "ratio": "3/8"
+      },
+      {
+        "sl": "3",
+        "ratio": "4/8"
+      },
+      {
+        "sl": "4",
+        "ratio": "5/8"
+      },
+      {
+        "sl": "5",
+        "ratio": "6/8"
+      },
+      {
+        "sl": "6",
+        "ratio": "7/8"
+      },
+      {
+        "sl": "7",
+        "ratio": "1"
+      }
+    ],
+    "sustain": [
+      {
+        "sr": "00",
+        "time": "Infinite"
+      },
+      {
+        "sr": "01",
+        "time": "38 sec"
+      },
+      {
+        "sr": "02",
+        "time": "28 sec"
+      },
+      {
+        "sr": "03",
+        "time": "24 sec"
+      },
+      {
+        "sr": "04",
+        "time": "19 sec"
+      },
+      {
+        "sr": "05",
+        "time": "14 sec"
+      },
+      {
+        "sr": "06",
+        "time": "12 sec"
+      },
+      {
+        "sr": "07",
+        "time": "9.4 sec"
+      },
+      {
+        "sr": "08",
+        "time": "7.1 sec"
+      },
+      {
+        "sr": "09",
+        "time": "5.9 sec"
+      },
+      {
+        "sr": "0A",
+        "time": "4.7 sec"
+      },
+      {
+        "sr": "0B",
+        "time": "3.5 sec"
+      },
+      {
+        "sr": "0C",
+        "time": "2.9 sec"
+      },
+      {
+        "sr": "0D",
+        "time": "2.4 sec"
+      },
+      {
+        "sr": "0E",
+        "time": "1.8 sec"
+      },
+      {
+        "sr": "0F",
+        "time": "1.5 sec"
+      },
+      {
+        "sr": "10",
+        "time": "1.2 sec"
+      },
+      {
+        "sr": "11",
+        "time": "880 msec"
+      },
+      {
+        "sr": "12",
+        "time": "740 msec"
+      },
+      {
+        "sr": "13",
+        "time": "590 msec"
+      },
+      {
+        "sr": "14",
+        "time": "440 msec"
+      },
+      {
+        "sr": "15",
+        "time": "370 msec"
+      },
+      {
+        "sr": "16",
+        "time": "290 msec"
+      },
+      {
+        "sr": "17",
+        "time": "220 msec"
+      },
+      {
+        "sr": "18",
+        "time": "180 msec"
+      },
+      {
+        "sr": "19",
+        "time": "150 msec"
+      },
+      {
+        "sr": "1A",
+        "time": "110 msec"
+      },
+      {
+        "sr": "1B",
+        "time": "92 msec"
+      },
+      {
+        "sr": "1C",
+        "time": "74 msec"
+      },
+      {
+        "sr": "1D",
+        "time": "55 msec"
+      },
+      {
+        "sr": "1E",
+        "time": "37 msec"
+      },
+      {
+        "sr": "1F",
+        "time": "18 msec"
+      }
+    ]
+  },
+  "gain": {
+    "manualTable": "3-7-3",
+    "manualPage": "3-7-5",
+    "pdfPage": 172,
+    "columns": ["linear increase", "bent increase", "linear decrease", "exponential decrease"],
+    "note": "Four columns of times against one rate. The linear columns are the same 1/64 step as the attack, so they take the same 64 ticks; the exponential decrease column repeats the sustain table exactly. The bent increase column is 1.75 times the linear one at every rate, which is the knee: 1/64 per tick up to three quarters, then 1/256.",
+    "linearAtFastestRate": "2 msec",
+    "bentAtFastestRate": "3.5 msec"
+  },
+  "noiseClock": {
+    "manualTable": "3-7-4",
+    "manualPage": "3-7-8",
+    "pdfPage": 177,
+    "note": "It is only possible to write into these registers from the CPU section.",
+    "rows": [
+      {
+        "nck": "00",
+        "frequency": "0 Hz"
+      },
+      {
+        "nck": "01",
+        "frequency": "16 Hz"
+      },
+      {
+        "nck": "02",
+        "frequency": "21 Hz"
+      },
+      {
+        "nck": "03",
+        "frequency": "25 Hz"
+      },
+      {
+        "nck": "04",
+        "frequency": "31 Hz"
+      },
+      {
+        "nck": "05",
+        "frequency": "42 Hz"
+      },
+      {
+        "nck": "06",
+        "frequency": "50 Hz"
+      },
+      {
+        "nck": "07",
+        "frequency": "63 Hz"
+      },
+      {
+        "nck": "08",
+        "frequency": "83 Hz"
+      },
+      {
+        "nck": "09",
+        "frequency": "100 Hz"
+      },
+      {
+        "nck": "0A",
+        "frequency": "125 Hz"
+      },
+      {
+        "nck": "0B",
+        "frequency": "167 Hz"
+      },
+      {
+        "nck": "0C",
+        "frequency": "200 Hz"
+      },
+      {
+        "nck": "0D",
+        "frequency": "250 Hz"
+      },
+      {
+        "nck": "0E",
+        "frequency": "333 Hz"
+      },
+      {
+        "nck": "0F",
+        "frequency": "400 Hz"
+      },
+      {
+        "nck": "10",
+        "frequency": "500 Hz"
+      },
+      {
+        "nck": "11",
+        "frequency": "667 Hz"
+      },
+      {
+        "nck": "12",
+        "frequency": "800 Hz"
+      },
+      {
+        "nck": "13",
+        "frequency": "1.0 KHz"
+      },
+      {
+        "nck": "14",
+        "frequency": "1.3 KHz"
+      },
+      {
+        "nck": "15",
+        "frequency": "1.6 KHz"
+      },
+      {
+        "nck": "16",
+        "frequency": "2.0 KHz"
+      },
+      {
+        "nck": "17",
+        "frequency": "2.7 KHz"
+      },
+      {
+        "nck": "18",
+        "frequency": "3.2 KHz"
+      },
+      {
+        "nck": "19",
+        "frequency": "4.0 KHz"
+      },
+      {
+        "nck": "1A",
+        "frequency": "5.3 KHz"
+      },
+      {
+        "nck": "1B",
+        "frequency": "6.4 KHz"
+      },
+      {
+        "nck": "1C",
+        "frequency": "8.0 KHz"
+      },
+      {
+        "nck": "1D",
+        "frequency": "10.7 KHz"
+      },
+      {
+        "nck": "1E",
+        "frequency": "16 KHz"
+      },
+      {
+        "nck": "1F",
+        "frequency": "32 KHz"
+      }
+    ]
+  },
+  "notStated": [
+    "Where the decay and sustain times stop being measured. Both columns are internally consistent to within two per cent of one endpoint, and the document never says what level that endpoint is.",
+    "The sample rate. 32 kHz falls out of the noise clock table's top row rather than being printed as a figure.",
+    "Anything about cycles. The manual describes the DSP in terms of times and frequencies, so nothing here can settle when within a sample period a register is read.",
+    "The gaussian interpolation kernel. The manual describes pitch as a 14 bit value and never gives the filter that resamples.",
+    "What a register holds at power on."
+  ]
+}
