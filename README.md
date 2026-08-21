@@ -32,6 +32,7 @@ dsp = Sdsp(Memory(), model="s-dsp")
 dsp.write(0x6C, 0x20)
 
 len(dsp.render(64))
+
 # 128, two channels per sample
 ```
 
@@ -107,8 +108,11 @@ cd sony-s-dsp-python
 
 ```bash
 python3 conformance/corpus.py
+
 #   240 cases from conformance/corpus.json, against snes9x 1.63 SPC_DSP.cpp
+
 #   configurations from 240 music dumps, 70 sample directory pages
+
 #   240 agreed, 0 did not
 ```
 
@@ -153,8 +157,11 @@ This matters more than it might sound. A random generator picks an envelope rate
 
 ```bash
 python3 conformance/capture.py "/path/to/spc/collection" census.json 500
+
 #   500 register states from /path/to/spc/collection
+
 #   81 sample directory pages, 2372 voices on envelopes
+
 #   written to census.json
 ```
 
@@ -228,6 +235,7 @@ because a number nobody printed is not a fact.
 from sdsp import Sdsp, Memory, describe
 
 describe("snes-dsp").voices
+
 # 8
 
 dsp = Sdsp(Memory(), model="s-dsp")
