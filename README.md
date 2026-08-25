@@ -23,7 +23,7 @@
   <a href="https://github.com/gufranco/sony-s-dsp-python/issues">Issues</a>
 </p>
 
-**8** voices · **32** clocks per sample · every **rate**, every **attack time** and every **register address** checked against Nintendo's own tables · **240** cases from real game configurations, **0** failures · **15,360** samples cross-checked · **516** tests · **100%** statement and branch coverage · no dependencies
+**8** voices · **32** clocks per sample · every **rate**, every **attack time** and every **register address** checked against Nintendo's own tables · **240** cases from real game configurations, **0** failures · **15,360** samples cross-checked · **531** tests · **100%** statement and branch coverage · no dependencies
 
 ```python
 from sdsp import Chip, Memory
