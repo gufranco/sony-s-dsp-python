@@ -1,4 +1,5 @@
 __pycache__/
+*.pyc
 .ruff_cache/
 .mypy_cache/
 .coverage
@@ -7,5 +8,16 @@ node_modules/
 dist/
 build/
 *.egg-info/
+.venv/
+venv/
+uv.lock
 .DS_Store
+
 docs/
+specs/
+
+*.rom
+*.bin
+*.sfc
+*.smc
+conformance/ref/driver

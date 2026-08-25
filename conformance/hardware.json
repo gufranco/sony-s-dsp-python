@@ -1,14 +1,4 @@
 {
-  "document": {
-    "publisher": "Nintendo of America Inc.",
-    "title": "SNES Development Manual, Book 1",
-    "section": "Book 3, the SNES sound source: chapter 7 Register Used, chapter 2 BRR",
-    "readOn": "2026-08-21",
-    "retrievedFrom": "archive.org/details/SNESDevManual, book1_text.pdf",
-    "sha256": "f1405241000046abba7849376d2ec53cf85f1ad2e9950d69a7c2cf1f3ff6b791",
-    "pages": 240,
-    "note": "A scan with an OCR text layer. The register map and the parameter tables were read off rendered page images at 200 dots per inch, because the text layer interleaves the table columns and reorders the numbers."
-  },
   "registerMap": {
     "manualTable": "3-7-1",
     "manualPage": "3-7-1",
@@ -608,5 +598,37 @@
     "Anything about cycles. The manual describes the DSP in terms of times and frequencies, so nothing here can settle when within a sample period a register is read.",
     "The gaussian interpolation kernel. The manual describes pitch as a 14 bit value and never gives the filter that resamples.",
     "What a register holds at power on."
-  ]
+  ],
+  "documents": {
+    "developmentManual": {
+      "publisher": "Nintendo of America Inc.",
+      "title": "SNES Development Manual, Book 1",
+      "section": "Book 3, the SNES sound source: chapter 7 Register Used, chapter 2 BRR",
+      "readOn": "2026-08-21",
+      "retrievedFrom": "archive.org/details/SNESDevManual, book1_text.pdf",
+      "sha256": "f1405241000046abba7849376d2ec53cf85f1ad2e9950d69a7c2cf1f3ff6b791",
+      "pages": 240,
+      "note": "A scan with an OCR text layer. The register map and the parameter tables were read off rendered page images at 200 dots per inch, because the text layer interleaves the table columns and reorders the numbers.",
+      "file": "book1_text.pdf"
+    }
+  },
+  "authority": {
+    "order": [
+      "Nintendo's SNES Development Manual, for the register map and the parameter tables it prints",
+      "the clock schedule, for what happens on which of the thirty two steps a sample is made of",
+      "a corpus of real game configurations, for everything neither of those reaches"
+    ],
+    "why": "Sony published no data sheet for this part. What exists is Nintendo's manual, written for somebody programming the sound unit rather than describing the silicon: it gives the registers, the rates and the attack times, and says nothing about the order the part does its work in. The order is what decides whether a register read taken mid sample answers what the hardware answers, so it is modelled as the fixed thirty two step schedule the part runs, and that schedule rests on a corpus rather than on a page.",
+    "whatIsMissing": "A manufacturer data sheet for the S-DSP. None is known to exist, so the top rung of the ladder is occupied by a manual written for a different purpose and the rung a data sheet would occupy is empty.",
+    "comparedAgainst": {
+      "runner": "conformance/corpus.py",
+      "what": "Real game configurations, replayed sample for sample and compared against what a second implementation of the same part produces: 240 cases and 15,360 samples, none of them derived from this model."
+    }
+  },
+  "resetLine": {
+    "value": "every register cleared, the flag register set to its reset value, every voice released",
+    "verified": false,
+    "evidence": "The manual names the reset bit of the flag register and does not tabulate what a reset leaves in each register. What this model does is what the corpus implies and what a second implementation does, which is a rung below a printed table and is recorded as such.",
+    "howToSettleIt": "A capture of the register file on a real audio unit immediately after reset."
+  }
 }

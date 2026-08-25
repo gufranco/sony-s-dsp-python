@@ -35,7 +35,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from sdsp.core import REGISTER_COUNT, Dsp
+from sdsp.core import REGISTER_COUNT, Chip
 from sdsp.memory import Memory
 
 EXAMPLE_LIMIT = 5
@@ -94,7 +94,7 @@ def ram_for(case: Mapping[str, Any]) -> Any:
 def render(case: Mapping[str, Any]) -> list[int]:
     """What this DSP produces for one case, sample for sample."""
     registers = case["registers"]
-    dsp = Dsp(Memory(fill=ram_for(case)))
+    dsp = Chip(Memory(fill=ram_for(case)))
     for address in range(REGISTER_COUNT):
         if address not in (REG_KON, REG_KOFF):
             dsp.write(address, registers[address])

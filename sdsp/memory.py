@@ -44,6 +44,11 @@ class SparseMemory:
     and still reads the same twice, at no setup cost.
     """
 
+    __slots__ = (
+        "cells",
+        "seed",
+    )
+
     def __init__(self, seed: int = UNSET_SEED) -> None:
         self.cells: dict[int, int] = {}
         self.seed = seed & _WORD
@@ -71,6 +76,8 @@ class Memory:
     scrambled pattern above. A caller that genuinely wants zeroes asks for zero
     and says so, which is the point: it becomes a decision rather than a default.
     """
+
+    __slots__ = ("data",)
 
     def __init__(
         self,

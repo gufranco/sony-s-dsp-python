@@ -48,9 +48,9 @@ body:
       description: Python we can run as it stands, with no editing.
       render: python
       placeholder: |
-        from sdsp import Sdsp, Memory
+        from sdsp import Chip, Memory
 
-        dsp = Sdsp(Memory())
+        dsp = Chip(memory=Memory())
         dsp.write(0x4C, 0x01)
         dsp.render(64)
     validations:

@@ -23,7 +23,7 @@ from typing import Protocol
 from .memory import UNSET_SEED, scramble
 from .tables import COUNTER_OFFSETS, COUNTER_RANGE, COUNTER_RATES, GAUSSIAN
 
-Step = Callable[["Dsp"], None]
+Step = Callable[["Chip"], None]
 """One entry of the thirty two step cycle the DSP walks per sample."""
 
 
@@ -106,6 +106,22 @@ def _signed16(value: int) -> int:
 class Voice:
     """One of the eight voices, and everything it carries between samples."""
 
+    __slots__ = (
+        "base",
+        "bit",
+        "brr_address",
+        "brr_offset",
+        "buffer",
+        "buffer_position",
+        "envelope",
+        "envelope_mode",
+        "envelope_out",
+        "hidden_envelope",
+        "index",
+        "interpolation",
+        "key_on_delay",
+    )
+
     def __init__(self, index: int) -> None:
         self.index = index
         self.bit = 1 << index
@@ -122,8 +138,50 @@ class Voice:
         self.envelope_out = 0
 
 
-class Dsp:
+class Chip:
     """An S-DSP holding whatever it was holding, which is how one powers up."""
+
+    __slots__ = (
+        "counter",
+        "echo_enabled",
+        "echo_history",
+        "echo_history_position",
+        "echo_in",
+        "echo_length",
+        "echo_offset",
+        "echo_out",
+        "echo_pointer",
+        "endx_buffer",
+        "envx_buffer",
+        "every_other_sample",
+        "kon",
+        "kon_check",
+        "main_out",
+        "memory",
+        "model",
+        "new_kon",
+        "noise",
+        "outx_buffer",
+        "phase",
+        "registers",
+        "rendered",
+        "t_adsr0",
+        "t_brr_byte",
+        "t_brr_header",
+        "t_brr_next_address",
+        "t_dir",
+        "t_dir_address",
+        "t_eon",
+        "t_esa",
+        "t_koff",
+        "t_looped",
+        "t_non",
+        "t_output",
+        "t_pitch",
+        "t_pmon",
+        "t_srcn",
+        "voices",
+    )
 
     def __init__(self, memory: MemoryLike, seed: int = UNSET_SEED, reset: bool = True) -> None:
         self.memory = memory
@@ -171,8 +229,12 @@ class Dsp:
         self.envx_buffer = 0
         self.rendered: list[int] = []
 
-    def reset(self) -> None:
-        """Put the DSP where a reset puts it, which is quiet and released."""
+    def reset(self) -> "Chip":
+        """Put the part where a reset puts it, which is quiet and released.
+
+        Returns the part, so a caller can build and reset in one expression
+        without losing the reference, as every other member of the family does.
+        """
         self._clear_state()
         for index in range(REGISTER_COUNT):
             self.registers[index] = 0
@@ -188,6 +250,7 @@ class Dsp:
             voice.envelope = 0
             voice.hidden_envelope = 0
             voice.envelope_out = 0
+        return self
 
     def read(self, address: int) -> int:
         return self.registers[address & 0x7F]
@@ -557,14 +620,14 @@ class Dsp:
 
 
 def _voice_step(name: str, index: int) -> "Step":
-    def run(dsp: "Dsp") -> None:
+    def run(dsp: "Chip") -> None:
         getattr(dsp, name)(dsp.voices[index])
 
     return run
 
 
 def _plain_step(name: str) -> "Step":
-    def run(dsp: "Dsp") -> None:
+    def run(dsp: "Chip") -> None:
         getattr(dsp, name)()
 
     return run

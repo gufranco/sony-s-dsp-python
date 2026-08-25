@@ -29,10 +29,13 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any, override
 
-from . import memory, models
-from .version import VERSION
-
 ROOT = Path(__file__).resolve().parent.parent
+
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from sdsp import memory, models  # noqa: E402
+from sdsp.version import VERSION  # noqa: E402
 
 CORPUS = ROOT / "conformance" / "corpus.json"
 

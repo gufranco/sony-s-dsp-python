@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import sdsp
-from sdsp import models
+from sdsp import errors, models
 from sdsp.memory import Memory
 
 
@@ -25,11 +25,11 @@ class CatalogueTest(unittest.TestCase):
             self.assertEqual(models.describe(written).name, "s-dsp")
 
     def test_a_model_the_package_does_not_have_is_refused_by_name(self) -> None:
-        with self.assertRaises(models.UnknownModelError):
+        with self.assertRaises(errors.UnknownModelError):
             models.describe("spc700")
 
     def test_the_refusal_lists_what_is_available(self) -> None:
-        with self.assertRaises(models.UnknownModelError) as raised:
+        with self.assertRaises(errors.UnknownModelError) as raised:
             models.describe("nonsense")
 
         self.assertIn("s-dsp", str(raised.exception))
@@ -43,19 +43,19 @@ class CatalogueTest(unittest.TestCase):
 
 class BuildTest(unittest.TestCase):
     def test_a_chip_is_built_from_its_model_name(self) -> None:
-        self.assertEqual(sdsp.Sdsp(Memory(fill=0), model="s-dsp").model, "s-dsp")
+        self.assertEqual(sdsp.Chip("s-dsp", Memory(fill=0)).model, "s-dsp")
 
     def test_the_default_model_is_the_one_the_console_carries(self) -> None:
-        self.assertEqual(sdsp.Sdsp(Memory(fill=0)).model, "s-dsp")
+        self.assertEqual(sdsp.Chip(memory=Memory(fill=0)).model, "s-dsp")
 
     def test_options_reach_the_chip_that_gets_built(self) -> None:
-        built = sdsp.Sdsp(Memory(fill=0), model="s-dsp", reset=False)
+        built = sdsp.Chip("s-dsp", Memory(fill=0), reset=False)
 
         self.assertEqual(len(built.registers), 128)
 
     def test_a_model_the_package_does_not_have_is_refused_at_construction(self) -> None:
-        with self.assertRaises(models.UnknownModelError):
-            sdsp.Sdsp(Memory(fill=0), model="ym2612")
+        with self.assertRaises(errors.UnknownModelError):
+            sdsp.Chip("ym2612", Memory(fill=0))
 
 
 if __name__ == "__main__":

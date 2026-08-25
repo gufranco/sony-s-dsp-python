@@ -11,7 +11,7 @@ from sdsp.memory import Memory
 
 
 def a_machine(fill: int = 0) -> Any:
-    return core.Dsp(Memory(fill=fill))
+    return core.Chip(Memory(fill=fill))
 
 
 def a_voice_ram(
@@ -34,7 +34,7 @@ def a_voice_ram(
 
 
 def keyed_on(memory: Any, directory: int = 0x02) -> Any:
-    dsp = core.Dsp(memory)
+    dsp = core.Chip(memory)
     dsp.write(core.REG_DIR, directory)
     dsp.write(core.REG_MVOLL, 0x7F)
     dsp.write(core.REG_MVOLL + 0x10, 0x7F)
@@ -58,7 +58,7 @@ class ResetTest(unittest.TestCase):
         self.assertTrue(all(v.envelope_mode == core.ENV_RELEASE for v in dsp.voices))
 
     def test_registers_are_not_assumed_clear_before_a_reset(self) -> None:
-        dsp = core.Dsp(Memory(fill=0), reset=False)
+        dsp = core.Chip(Memory(fill=0), reset=False)
 
         self.assertNotEqual(bytes(dsp.registers), bytes(core.REGISTER_COUNT))
 

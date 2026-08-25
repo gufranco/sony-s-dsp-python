@@ -10,13 +10,20 @@ rather than restructuring the package around it.
 from collections.abc import Callable, Sequence
 from typing import Any, override
 
-
-class UnknownModelError(Exception):
-    pass
+from sdsp.errors import UnknownModelError
 
 
 class Model:
     """One part: what it is, what it carries, and how to build it."""
+
+    __slots__ = (
+        "aliases",
+        "core",
+        "name",
+        "registers",
+        "summary",
+        "voices",
+    )
 
     def __init__(
         self,
@@ -43,9 +50,9 @@ class Model:
 
 
 def _build_sdsp(model: "Model", memory: Any, **options: Any) -> Any:
-    from .core import Dsp
+    from .core import Chip
 
-    dsp = Dsp(memory, **options)
+    dsp = Chip(memory, **options)
     dsp.model = model.name
     return dsp
 
