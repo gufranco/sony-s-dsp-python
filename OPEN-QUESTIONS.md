@@ -56,28 +56,52 @@ checksum of `E7EEFEC8`.
 The obvious way for that to be an artefact is the clock, since the console and
 the audio unit run from separate crystals and the harness driving this had to
 pick a rate between them. It is not: at one, two and three of the unit's cycles
-per console instruction the checksum is `E7EEFEC8` every time, which is what a
+per console instruction the checksum is the same every time, which is what a
 figure that comes out of the part rather than out of the harness looks like.
 
-The last name the check draws before the dump is `Envelope/gain $E0 threshold`,
-and the values it prints, `003F 0020`, `0626 05E8` and `07E8 07E7`, sit in the
-region where the bent increase changes slope.
+**Five of his checks pass and one fails.** Each check is uploaded as its own
+program carrying both its name and the value a console produced, so the verdict
+is per check rather than for the run:
 
-**One cause has been ruled out.** The bent increase here adds `0x20` and drops
-to `0x8` once past `0x600`, and it tests the hidden envelope left by the previous
-step rather than the value it has just computed. Rewriting it to test the
-computed value instead changes nothing: the dump and the checksum come back
-identical. Whatever this check is reporting, that asymmetry is not it, and the
-line stands unchanged rather than being adjusted to look tidier.
+| Check | Console | This model | |
+| --- | --- | --- | --- |
+| Echo/edl 0 quirk | `72 10 02 2d` | `72 10 02 2d` | agrees |
+| Echo/edl lengths | `48 cb 9a 15` | `48 cb 9a 15` | agrees |
+| Envelope/attack->decay during gain | `46 86 5d bd` | `46 86 5d bd` | agrees |
+| Envelope/decay->sustain during gain | `90 c8 96 de` | `90 c8 96 de` | agrees |
+| Envelope/envelope rates | `90 e0 49 9b` | `90 e0 49 9b` | agrees |
+| Envelope/gain $E0 threshold | `35 9a 05 12` | `37 01 11 18` | **disagrees** |
+
+Six earlier programs, `Echo/basics` through `Echo/echo calc`, ran without a
+comparison of that shape and are not counted either way.
+
+**The failing check is down to one byte.** Everything it feeds its checksum was
+captured at the one instruction that feeds it, 28 bytes, and plain CRC-32 begun
+at all ones reproduces the unit's own accumulator exactly, so the capture is the
+input rather than a reconstruction of it. Of every single-byte and every
+single-word correction to those 28 bytes, exactly one produces the console's
+value: **the seventeenth byte must be `0x27` and this model makes it `0x3f`.**
+
+That byte is the low half of a word the check halves before reporting, so what
+it means is that this model counts **126 where a console counts 78**.
+
+**The obvious cause has been ruled out, three ways.** The bent increase adds
+`0x20` and drops to `0x8` once past `0x600`, and it tests the hidden envelope
+left by the previous step rather than the value it has just computed. That
+asymmetry is real and it is not this: testing the computed value with `>`, and
+again with `>=`, leaves the byte at `0x3f` both times. The line stands unchanged
+rather than being adjusted to look tidier.
 
 That is the interesting result rather than a disappointing one. This model agrees
 with `snes_spc` across 15,360 samples and disagrees with the same author's
 hardware check, so the two are reaching different ground: either the corpus does
 not cover what the check covers, or something between them is at fault.
 
-**What is not known.** Which of the 111 disagrees, and whether the fault is in
-this model, in the composed unit that clocks it, or in the harness that drove the
-cartridge. Nothing here separates those.
+**What is not known.** What the count of 126 counts. The check reports it from a
+sixteen bit variable at `$0000` in its own program, halved on the way out, and
+reading that program far enough to name the quantity is the next step. It is a
+bounded job: the program is 64 kilobytes, it is captured, and this family has a
+disassembler for it.
 
 **What would settle or reopen it.** Isolating that check and reading what it
 expects, which is in the cartridge rather than in anybody's prose. Failing that,
