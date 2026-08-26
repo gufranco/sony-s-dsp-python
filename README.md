@@ -1,29 +1,10 @@
-<div align="center">
+# S-DSP
 
-<h1>S-DSP</h1>
-
-<strong>A model of the Sony S-DSP that runs on the clock schedule the hardware runs on.</strong>
-
-<br>
-<br>
+A model of the Sony S-DSP that runs on the clock schedule the hardware runs on.
 
 [![CI](https://github.com/gufranco/sony-s-dsp-python/actions/workflows/ci.yml/badge.svg)](https://github.com/gufranco/sony-s-dsp-python/actions/workflows/ci.yml)
-[![Corpus](https://img.shields.io/badge/corpus-240%20%2F%20240-brightgreen)](#the-corpus-and-why-it-can-ship)
-[![Coverage](https://img.shields.io/badge/coverage-100%25%20statement%20%2B%20branch-brightgreen)](#tests)
-[![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue)](pyproject.toml)
-[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-</div>
-
-<p align="center">
-  <a href="#quick-start">Quick start</a> &nbsp;|&nbsp;
-  <a href="#the-thirty-two-clock-schedule">The schedule</a> &nbsp;|&nbsp;
-  <a href="#the-corpus-and-why-it-can-ship">Why the corpus is legal</a> &nbsp;|&nbsp;
-  <a href="#how-this-is-proved">How this is proved</a> &nbsp;|&nbsp;
-  <a href="https://github.com/gufranco/sony-s-dsp-python/issues">Issues</a>
-</p>
-
-**8** voices · **32** clocks per sample · every **rate**, every **attack time** and every **register address** checked against Nintendo's own tables · **240** cases from real game configurations, **0** failures · **15,360** samples cross-checked · **532** tests · **100%** statement and branch coverage · no dependencies
+**8** voices, **32** clocks per sample, every **rate**, every **attack time** and every **register address** checked against Nintendo's own tables, **240** cases from real game configurations, **0** failures, **15,360** samples cross-checked, **532** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 from sdsp import Chip, Memory
@@ -36,7 +17,6 @@ len(dsp.render(64))
 # 128, two channels per sample
 ```
 
----
 
 ## Install
 ```bash
