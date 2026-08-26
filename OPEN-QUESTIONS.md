@@ -52,6 +52,32 @@ filter that resamples.
 a property of the silicon that somebody read out of it, and this repository
 carries the numbers rather than a derivation of them.
 
+**A closed form was looked for and there is none.** If the table were a computed
+curve, the formula would be the source and a transcription error would show up as
+a mismatch. Fitted by least squares against all 512 entries on 2026-08-25, taking
+entry `u` as the kernel at distance `(511.5 - u) / 256`, the closest candidates
+leave these peak errors on a maximum of 1305:
+
+| Candidate | Peak error | Mean error |
+|:--|--:|--:|
+| cos^3.5(pi d / 4) | 18 | 9.6 |
+| Gaussian, sigma 0.63 | 21 | 10.5 |
+| Cubic B-spline | 38 | 18.4 |
+| Hann squared | 44 | 21.6 |
+| cos^2(pi d / 4) | 191 | 109.1 |
+| Catmull-Rom | 380 | 178.9 |
+
+Nothing lands inside rounding, so the table is stored rather than computed. The
+search is written down with its numbers so the next person to have the idea finds
+the result instead of repeating it.
+
+**What is checked instead.** The properties the silicon has to have for the chip
+to work at all, and they hold: the curve never decreases, it starts at zero and
+peaks at the end, every entry fits a signed word, and the four taps reading any
+position sum to one unit to within one part in two thousand. Those do not say the
+numbers are right. They say a transcription that broke one of them would be
+caught.
+
 **What would settle or reopen it.** A die read, or a Sony document.
 
 ## Where the manual stops short

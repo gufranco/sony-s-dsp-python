@@ -35,8 +35,8 @@
       "documentSays": "Nothing. Pitch is described as a fourteen bit value across P(L) and P(H) and the manual never gives the filter that resamples a decoded sample to it.",
       "referenceDoes": "Carries a 512 entry table, one quarter of a symmetric curve, which this model reproduces.",
       "packageFollows": "reference",
-      "reasoning": "This is the single largest thing in the model with no manufacturer source. It shapes every sample the chip emits, so an error in it is audible everywhere and is invisible to every check in hardware.test.py, which can only reach the tables the manual describes.",
-      "wouldSettleIt": "A die photograph of the coefficient ROM, or a measurement: feed a known impulse at a known pitch and read the output back."
+      "reasoning": "This is the single largest thing in the model with no manufacturer source. It shapes every sample the chip emits, so an error in it is audible everywhere and is invisible to every check in hardware.test.py, which can only reach the tables the manual describes. A closed form was looked for on 2026-08-25 and none reproduces it. Fitted by least squares against the 512 entries, the best candidates leave a peak error of 18 on a maximum of 1305 for cos^3.5, 20 for a gaussian of sigma 0.63, and 38 for a cubic B-spline, against 380 for Catmull-Rom and 191 for cos^2. Nothing lands inside rounding, so the table is stored rather than computed and there is no derivation to publish in place of it.",
+      "wouldSettleIt": "A die photograph of the coefficient ROM, or a measurement: feed a known impulse at a known pitch and read the output back. A closed form would also have done it and does not exist; the search and its numbers are in the open questions so nobody repeats it."
     },
     {
       "id": "no-sony-document-for-this-part",
