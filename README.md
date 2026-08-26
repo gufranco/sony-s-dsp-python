@@ -4,7 +4,7 @@ A model of the Sony S-DSP that runs on the clock schedule the hardware runs on.
 
 [![CI](https://github.com/gufranco/sony-s-dsp-python/actions/workflows/ci.yml/badge.svg)](https://github.com/gufranco/sony-s-dsp-python/actions/workflows/ci.yml)
 
-**8** voices, **32** clocks per sample, every **rate**, every **attack time** and every **register address** checked against Nintendo's own tables, **240** cases from real game configurations, **0** failures, **15,360** samples cross-checked, **532** tests, **100%** statement and branch coverage, **97** of **104** checks taken on a console agree, no dependencies
+**8** voices, **32** clocks per sample, every **rate**, every **attack time** and every **register address** checked against Nintendo's own tables, **240** cases from real game configurations, **0** failures, **15,360** samples cross-checked, **536** tests, **100%** statement and branch coverage, **97** of **104** checks taken on a console agree, no dependencies
 
 ```python
 from sdsp import Chip, Memory
@@ -32,7 +32,7 @@ Everything a caller touches. Nothing else is public.
 |:--|:--|
 | `Chip(model, memory)` | A part of that model, on a store it builds when one is not handed over |
 | `Memory`, `SparseMemory` | Flat memory, and the same promise without the allocation |
-| `describe(model)`, `MODELS`, `Model` | The catalogue, without building anything |
+| `MODELS`, `Model` | Every model this package covers, by the name it goes by |
 | `clock()` | One of the thirty two clocks a sample is made of |
 | `read(address)`, `write(address, value)` | The register file, as a host reaches it |
 | `reset()` | The reset line, handed back so a caller can chain |
@@ -47,12 +47,15 @@ Everything a caller touches. Nothing else is public.
 takes first, and the name is the kind rather than the chip.
 
 ```python
-from sdsp import Chip, describe
+from sdsp import Chip
 
-describe("s-dsp").name
+Chip("s-dsp").model
 
 # 's-dsp'
 ```
+
+There is no default. Naming none raises and lists every model there is, so a
+caller who did not know what to pass learns it from the error.
 
 A name no part answers to is refused rather than quietly building the only one
 there is:
@@ -133,14 +136,17 @@ Three different voices, three different stages, one sample. The full table is `P
 
 ## Models
 ```python
-from sdsp import Chip, Memory, describe
+from sdsp import MODELS, Chip, Memory
 
-describe("snes-dsp").voices
+dsp = Chip("snes-dsp", Memory())
+
+MODELS[dsp.model].voices
 
 # 8
-
-dsp = Chip("s-dsp", Memory())
 ```
+
+An alias builds the part it names, and the part carries the model's own name
+rather than the alias it was reached by.
 
 | Model | Voices | Registers | Notes |
 |:------|:------:|:---------:|:------|

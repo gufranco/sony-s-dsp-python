@@ -16,6 +16,7 @@ Nothing starts clean. Audio RAM holds whatever it held.
 from typing import Any
 
 from . import core as core
+from . import models as models
 from .core import (
     ENV_ATTACK,
     ENV_DECAY,
@@ -28,16 +29,14 @@ from .core import (
 )
 from .errors import UnknownModelError
 from .memory import UNSET_SEED, Memory, SparseMemory, scramble
-from .models import MODELS, Model, describe
+from .models import MODELS, Model
 from .tables import COUNTER_OFFSETS, COUNTER_RATES, GAUSSIAN
 from .version import VERSION
 
 __version__ = VERSION
 
-DEFAULT_MODEL = "s-dsp"
 
-
-def Chip(model: str = DEFAULT_MODEL, memory: Any = None, **options: Any) -> "core.Chip":  # noqa: N802
+def Chip(model: str | None = None, memory: Any = None, **options: Any) -> "core.Chip":  # noqa: N802
     """A chip of the named model, sharing one interface across the family.
 
     The model comes first because it is the thing a caller always knows, and the
@@ -50,7 +49,7 @@ def Chip(model: str = DEFAULT_MODEL, memory: Any = None, **options: Any) -> "cor
     register accesses and steps a fixed schedule; it executes nothing, and
     calling the constructor `Cpu` would say it did.
     """
-    built: core.Chip = describe(model).build(
+    built: core.Chip = models.lookup(model).build(
         SparseMemory() if memory is None else memory, **options
     )
     return built
@@ -59,7 +58,6 @@ def Chip(model: str = DEFAULT_MODEL, memory: Any = None, **options: Any) -> "cor
 __all__ = [
     "COUNTER_OFFSETS",
     "COUNTER_RATES",
-    "DEFAULT_MODEL",
     "ENV_ATTACK",
     "ENV_DECAY",
     "ENV_RELEASE",
@@ -77,6 +75,5 @@ __all__ = [
     "UnknownModelError",
     "Voice",
     "__version__",
-    "describe",
     "scramble",
 ]
