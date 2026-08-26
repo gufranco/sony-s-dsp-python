@@ -902,6 +902,8 @@ describes.
 ## What this repository is a piece of
 
 The audio unit is this part beside a processor, RAM and a boot ROM. The
-processor is [sony-spc700-python](https://github.com/gufranco/sony-spc700-python).
-Neither models the other, because two models of one wire is how two models
-disagree.
+processor is [sony-spc700-python](https://github.com/gufranco/sony-spc700-python)
+and the member that composes the two is
+[sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python). Neither this
+part nor the processor models the other, because two models of one wire is how
+two models disagree.

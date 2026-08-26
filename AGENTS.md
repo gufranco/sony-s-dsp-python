@@ -1,7 +1,9 @@
 # Working in this repository
 
-This file is for a coding agent. A person reading it will not be harmed, but
-[README.md](README.md) is the document written for them.
+Read [FAMILY.md](FAMILY.md) first. It is the standard every member of this
+family carries, byte for byte, and it decides most questions before they are
+asked. What follows is only what is true of this member. [README.md](README.md)
+is the document written for a person.
 
 ## What this project is, in one paragraph
 
@@ -134,7 +136,6 @@ conformance/
 
 ## Things that will bite you
 
-- **The schedule is not an implementation detail.** See above.
 - **The part comes up scrambled.** Registers hold a pattern derived from a seed,
   not zero, because no machine hands over cleared registers. `reset()` is a
   separate event and does a different thing.
