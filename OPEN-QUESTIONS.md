@@ -97,25 +97,29 @@ with `snes_spc` across 15,360 samples and disagrees with the same author's
 hardware check, so the two are reaching different ground: either the corpus does
 not cover what the check covers, or something between them is at fault.
 
-**The divergence is real, and it no longer needs a cartridge to see.** The
-failing check was captured at the instant the audio unit jumps into it and
-written back out as a file that both this family and the author's own library
-load. `snes_spc 0.9.0` was built from source and handed the same file. Run with
-no console attached at all:
+**The check no longer needs a cartridge to run, and the comparison it enables is
+inconclusive.** The failing check was captured at the instant the audio unit
+jumps into it and written back out as a file that both this family and the
+author's own library load. `snes_spc 0.9.0` was built from source and handed the
+same file, with no console attached at all.
 
-| Running the same program, no console | Result |
+His library answers two different ways depending on nothing but how it is called:
+
+| `snes_spc 0.9.0`, same program, only the call size changed | Result |
 | --- | --- |
-| This family's sound generator, in the composed audio unit | `a2 c9 a2 2b` |
-| `snes_spc 0.9.0`, by the author of the check | `00 ed 26 be` |
+| one sample per call | `a2 c9 a2 2b` |
+| two, sixteen, two hundred and fifty six, four thousand per call | `00 ed 26 be` |
 
-Both are settled rather than caught mid-run: unchanged across one, two and four
-million instructions on one side and one hundred, two hundred and four hundred
-thousand samples on the other.
+This family, stepped one instruction at a time, gives `a2 c9 a2 2b`, which is
+what his gives when driven the same way. A console gives `35 9a 05 12`, which is
+neither.
 
-That is the useful shape. The neighbouring member ran the same experiment for the
-processor and the two implementations agreed exactly, which is what tells us this
-one is a real difference between two models of this part rather than an artefact
-of how either was driven.
+So the two implementations are not shown to disagree. What is shown is that his
+is sensitive to the granularity it is driven at, that the finer granularity is
+the one this family matches, and that neither granularity reproduces hardware.
+An earlier version of this entry read the coarse-call figure as his answer and
+called the difference real. That was wrong, and the control that caught it was
+running his library at more than one call size.
 
 What the check does, read out of its own code: it writes `$ff` to voice 0's gain
 register, which is bent increase at rate 31, then `$e0`, which is bent increase at
