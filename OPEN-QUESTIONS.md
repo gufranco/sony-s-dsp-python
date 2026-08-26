@@ -259,6 +259,23 @@ reports its own cycles.
 
 **What would settle or reopen it.** A capture of both parts on one bus.
 
+## What a comparison against the author's own implementation could not settle
+
+`snes_spc 0.9.0` was built as a shared library and given the same four-port
+interface this family's audio unit presents, so the same console harness could
+drive either one and nothing but the implementation would differ. It starts,
+answers `0xaa 0xbb`, takes the upload and runs five checks.
+
+Then its memory goes to zero and stays there while the console polls a pair of
+ports that never change again. That is the harness losing the unit rather than
+the unit disagreeing about anything, and the cause was not found.
+
+So the comparison says nothing about either implementation and is recorded as a
+dead end rather than as a result. What it does establish is the shape of the
+experiment for whoever tries again: the interface swap is the right idea, the
+library needs the same sixty four bytes of boot program this family needs, and
+the thing to fix first is whatever the adapter does to time.
+
 ## What is not in question
 
 So the boundary is visible rather than implied:

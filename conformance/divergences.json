@@ -50,15 +50,15 @@
       "wouldSettleIt": "A Sony S-DSP datasheet. Searched on 2026-08-21; nothing was found."
     },
     {
-      "id": "nothing-here-is-a-timing-claim",
+      "id": "the-schedule-is-checked-at-step-granularity",
       "parts": ["s-dsp"],
-      "severity": "medium",
-      "status": "notModelled",
+      "severity": "low",
+      "status": "narrowed",
       "documentSays": "Describes the DSP entirely in times and frequencies. It gives no cycle count anywhere, and the register map notes only that the DSP rewrites ENVX \"at each Ts\".",
       "referenceDoes": "Runs a sample at a time, in the order snes9x chose.",
       "packageFollows": "reference",
-      "reasoning": "This model produces one sample per call and claims nothing about when within a sample period a register is read or written. That ordering is real on the hardware and matters to a driver that writes mid-sample, and no source on this machine settles it. It is not modelled rather than modelled wrongly.",
-      "wouldSettleIt": "A cycle level trace of the S-SMP bus while the DSP runs, or a Sony document."
+      "reasoning": "This said the model produces one sample per call and claims nothing about when within a sample period a register is read or written, and that no source on this machine settled it. A source does, and it has been run. Shay Green's spc_dsp6 carries an Order group and a Timing group whose names are the step numbers inside the thirty two step schedule, such as Timing/Misc/28 dir and Timing/Echo/22-23 echo read. All 19 of the Order checks agree and 39 of the 41 Timing checks agree, against values taken on a console. So the schedule is checked at step granularity rather than left unclaimed, and what remains unclaimed is narrower: the two that disagree, Timing/Voice/V8 outx and Timing/Voice/V9 envx, which report the identical pair of values and are therefore one cause.",
+      "wouldSettleIt": "Reading what V8 outx and V9 envx measure. They report the same pair of values, so they are one cause rather than two."
     },
     {
       "id": "power-on-state-is-not-documented",
