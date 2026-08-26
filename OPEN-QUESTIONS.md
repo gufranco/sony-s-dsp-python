@@ -53,6 +53,23 @@ through the composed audio unit in
 echo group, reaches the envelope group, and reports a disagreement with a table
 checksum of `E7EEFEC8`.
 
+The obvious way for that to be an artefact is the clock, since the console and
+the audio unit run from separate crystals and the harness driving this had to
+pick a rate between them. It is not: at one, two and three of the unit's cycles
+per console instruction the checksum is `E7EEFEC8` every time, which is what a
+figure that comes out of the part rather than out of the harness looks like.
+
+The last name the check draws before the dump is `Envelope/gain $E0 threshold`,
+and the values it prints, `003F 0020`, `0626 05E8` and `07E8 07E7`, sit in the
+region where the bent increase changes slope.
+
+**One cause has been ruled out.** The bent increase here adds `0x20` and drops
+to `0x8` once past `0x600`, and it tests the hidden envelope left by the previous
+step rather than the value it has just computed. Rewriting it to test the
+computed value instead changes nothing: the dump and the checksum come back
+identical. Whatever this check is reporting, that asymmetry is not it, and the
+line stands unchanged rather than being adjusted to look tidier.
+
 That is the interesting result rather than a disappointing one. This model agrees
 with `snes_spc` across 15,360 samples and disagrees with the same author's
 hardware check, so the two are reaching different ground: either the corpus does
