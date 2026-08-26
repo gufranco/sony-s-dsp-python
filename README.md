@@ -4,7 +4,7 @@ A model of the Sony S-DSP that runs on the clock schedule the hardware runs on.
 
 [![CI](https://github.com/gufranco/sony-s-dsp-python/actions/workflows/ci.yml/badge.svg)](https://github.com/gufranco/sony-s-dsp-python/actions/workflows/ci.yml)
 
-**8** voices, **240** cases from real game configurations, **0** failures, **15,360** samples cross-checked, **97** of **104** checks taken on a console agree, every rate, attack time and register address held to Nintendo's own tables, **536** tests, **100%** statement and branch coverage, no dependencies
+**8** voices, **240** cases from real game configurations, **0** failures, **15,360** samples cross-checked, **97** of **104** checks taken on a console agree, every rate, attack time and register address held to Nintendo's own tables, **551** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 from sdsp import Chip, Memory
@@ -31,6 +31,7 @@ Everything a caller touches. Nothing else is public.
 | Name | What it is |
 |:--|:--|
 | `Chip(model, memory)` | A part of that model, on a store it builds when one is not handed over |
+| `Chip(model, memory, gaussian=...)` | The same, resampling through a kernel you supply instead of the published one |
 | `Memory`, `SparseMemory` | Flat memory, and the same promise without the allocation |
 | `MODELS`, `Model` | Every model this package covers, by the name it goes by |
 | `clock()` | One of the thirty two clocks a sample is made of |
@@ -42,6 +43,8 @@ Everything a caller touches. Nothing else is public.
 | `ENV_ATTACK`, `ENV_DECAY`, `ENV_SUSTAIN`, `ENV_RELEASE` | The four envelope phases, by name |
 | `scramble`, `UNSET_SEED` | The pattern the registers come up holding |
 | `UnknownModelError` | No part goes by that name |
+| `NotAKernel` | A supplied kernel cannot be the one on the die |
+| `check_kernel(table)` | What a supplied kernel is held to, callable on its own |
 
 `Chip` takes the model first, which is the argument every member of the family
 takes first, and the name is the kind rather than the chip.
@@ -167,8 +170,43 @@ rather than the alias it was reached by.
 | BRR filters | All four filters, every shift including the clamped range | Behavioural |
 | Envelopes | ADSR plus all four gain modes | Behavioural |
 | Echo | Eight tap filter, feedback, buffer wrap, write suppression | Behavioural |
-| Interpolation kernel | Verified monotonic, and its four taps sum to one unit at every position | Structural, exhaustive |
+| Interpolation kernel | Verified monotonic, and its four taps sum to one unit at every position | Structural, and the only entry here with no artifact behind it |
 | Counter rates | Verified to divide the counter period, offsets verified to stagger | Structural, exhaustive |
+
+
+### The kernel is the one table no digest can settle
+
+Every other artifact this family reads is a file. The boot program in
+[sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python) has four
+digests in a manifest, so a copy is either the one the manifest names or it is
+refused by name, and a reader can confirm what they hold without trusting
+anybody. The microcode members work the same way.
+
+This kernel is not a file. It is on the die, it was read out as behaviour, and
+it circulates as a printed table of numbers. There is no canonical dump to hash,
+so there is no digest here and there will not be one until somebody dumps the
+interpolation ROM.
+
+A caller who has their own table supplies it and it is held to what the
+interpolator requires rather than to a digest:
+
+| Property | Why the part needs it |
+|:--|:--|
+| 512 entries | A shorter table indexes out of range at `forward + 256` |
+| Every tap a signed word | The multiply is a signed 16 bit one |
+| Rises from nothing and never dips | A dip reverses the curve and the resampler stops being one |
+| The four taps of every position sum to 2048 | Otherwise a voice changes volume according to where between two samples it lands, which is audible as a warble on a held note |
+
+That is weaker than a digest and it is what there is. Two different tables can
+pass it, so passing means the table could be the part's, never that it is. A
+refusal names the property and the entry, because somebody holding a table they
+typed out of an article needs to know which number to look at.
+
+The kernel is held on the part rather than on the module, so two parts in one
+process can carry different tables and neither can change what the other reads.
+Doing it that way costs nothing measurable: against the module global, over five
+alternating rounds of fifteen repeats each, the difference was -0.4%, inside a
+run-to-run spread of about 2%.
 
 ### Where the facts come from
 

@@ -136,6 +136,19 @@ conformance/
 
 ## Things that will bite you
 
+- **The interpolation kernel is the one table no digest can settle.** Every other
+  artifact this family reads is a file with a manifest behind it. This one is on
+  the die, has never been dumped, and circulates as a printed table of numbers.
+  A caller may hand their own in as `Chip(model, memory, gaussian=...)`, where
+  `check_kernel` holds it to the length, the shape and the four-tap identity.
+  That is weaker than a digest and the readme says so rather than blurring the
+  two: two different tables can pass it. Never add a digest here as though one
+  existed.
+- **The kernel is held on the part, not on the module.** Rebinding
+  `tables.GAUSSIAN` would make the last constructor win for every part in the
+  process. Holding it on the instance costs nothing measurable, which was
+  measured rather than assumed: -0.4% against the module global over five
+  alternating rounds, inside a run-to-run spread of about 2%.
 - **The part comes up scrambled.** Registers hold a pattern derived from a seed,
   not zero, because no machine hands over cleared registers. `reset()` is a
   separate event and does a different thing.

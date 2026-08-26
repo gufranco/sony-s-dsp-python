@@ -5,6 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sdsp import tables
+from sdsp.errors import NotAKernel
 
 
 class GaussianTest(unittest.TestCase):
@@ -91,6 +92,68 @@ class CounterTest(unittest.TestCase):
 
     def test_the_counter_range_is_what_the_rates_were_built_for(self) -> None:
         self.assertEqual(tables.COUNTER_RANGE, 30720)
+
+
+class SuppliedKernelTest(unittest.TestCase):
+    """That a caller's table is held to what the part's arithmetic requires.
+
+    No digest can settle this one, so these are the whole of the gate. Each is
+    driven against a table that breaks exactly that property, because a check
+    nobody has seen refuse is not known to refuse.
+    """
+
+    def test_the_published_table_passes_its_own_gate(self) -> None:
+        self.assertEqual(tables.check_kernel(tables.GAUSSIAN), tables.GAUSSIAN)
+
+    def test_a_list_is_handed_back_as_a_tuple(self) -> None:
+        self.assertIsInstance(tables.check_kernel(list(tables.GAUSSIAN)), tuple)
+
+    def test_a_table_of_the_wrong_length_is_refused(self) -> None:
+        with self.assertRaises(NotAKernel) as caught:
+            tables.check_kernel(tables.GAUSSIAN[:-1])
+
+        self.assertIn("511", str(caught.exception))
+
+    def test_a_table_that_dips_is_refused(self) -> None:
+        dipping = list(tables.GAUSSIAN)
+        dipping[300] = 0
+
+        with self.assertRaises(NotAKernel) as caught:
+            tables.check_kernel(dipping)
+
+        self.assertIn("300", str(caught.exception))
+
+    def test_a_tap_outside_a_signed_word_is_refused(self) -> None:
+        wide = list(tables.GAUSSIAN)
+        wide[-1] = 0x8000
+
+        with self.assertRaises(NotAKernel) as caught:
+            tables.check_kernel(wide)
+
+        self.assertIn("signed word", str(caught.exception))
+
+    def test_a_table_whose_taps_do_not_sum_to_unity_is_refused(self) -> None:
+        halved = [value // 2 for value in tables.GAUSSIAN]
+
+        with self.assertRaises(NotAKernel) as caught:
+            tables.check_kernel(halved)
+
+        self.assertIn("sum to", str(caught.exception))
+
+    def test_the_refusal_names_the_position_that_failed(self) -> None:
+        bent = list(tables.GAUSSIAN)
+        bent[511] = bent[511] + 200
+
+        with self.assertRaises(NotAKernel) as caught:
+            tables.check_kernel(bent)
+
+        self.assertIn("position 0", str(caught.exception))
+
+    def test_a_rounding_difference_inside_the_tolerance_is_allowed(self) -> None:
+        nudged = list(tables.GAUSSIAN)
+        nudged[511] = nudged[511] + 1
+
+        self.assertEqual(len(tables.check_kernel(nudged)), tables.KERNEL_LENGTH)
 
 
 if __name__ == "__main__":

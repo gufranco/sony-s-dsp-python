@@ -17,11 +17,11 @@ Nothing here starts clean. Audio RAM holds whatever it held, and the registers a
 reset does not define hold whatever they held.
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Protocol
 
 from .memory import UNSET_SEED, scramble
-from .tables import COUNTER_OFFSETS, COUNTER_RANGE, COUNTER_RATES, GAUSSIAN
+from .tables import COUNTER_OFFSETS, COUNTER_RANGE, COUNTER_RATES, GAUSSIAN, check_kernel
 
 Step = Callable[["Chip"], None]
 """One entry of the thirty two step cycle the DSP walks per sample."""
@@ -154,6 +154,7 @@ class Chip:
         "endx_buffer",
         "envx_buffer",
         "every_other_sample",
+        "gaussian",
         "kon",
         "kon_check",
         "main_out",
@@ -183,11 +184,32 @@ class Chip:
         "voices",
     )
 
-    def __init__(self, memory: MemoryLike, seed: int = UNSET_SEED, reset: bool = True) -> None:
+    def __init__(
+        self,
+        memory: MemoryLike,
+        seed: int = UNSET_SEED,
+        reset: bool = True,
+        gaussian: Sequence[int] | None = None,
+    ) -> None:
+        """A part wired to that memory, resampling through that kernel.
+
+        `gaussian` replaces the interpolation kernel for this part alone. It is
+        held on the instance rather than rebound on the module, so two parts in
+        one process can carry different tables and neither can change what the
+        other reads. Leaving it out uses the table this package publishes.
+
+        Whatever is handed in goes through `check_kernel` first, because a table
+        that skips the checks turns a verified table into an unverified one
+        silently: the part still runs, still produces audio, and the audio is
+        wrong in a way that sounds like a bad recording rather than like a bug.
+        There is no digest that can settle this one, which `tables.py` says at
+        more length.
+        """
         self.memory = memory
         self.registers = bytearray(scramble(REGISTER_COUNT, seed))
         self.voices = [Voice(index) for index in range(VOICE_COUNT)]
         self.model = "s-dsp"
+        self.gaussian = GAUSSIAN if gaussian is None else check_kernel(gaussian)
         self._clear_state()
         if reset:
             self.reset()
@@ -284,11 +306,13 @@ class Chip:
         forward = 255 - offset
         reverse = offset
 
-        out = (GAUSSIAN[forward] * voice.buffer[at]) >> 11
-        out += (GAUSSIAN[forward + 256] * voice.buffer[at + 1]) >> 11
-        out += (GAUSSIAN[reverse + 256] * voice.buffer[at + 2]) >> 11
+        kernel = self.gaussian
+
+        out = (kernel[forward] * voice.buffer[at]) >> 11
+        out += (kernel[forward + 256] * voice.buffer[at + 1]) >> 11
+        out += (kernel[reverse + 256] * voice.buffer[at + 2]) >> 11
         out = _signed16(out)
-        out += (GAUSSIAN[reverse] * voice.buffer[at + 3]) >> 11
+        out += (kernel[reverse] * voice.buffer[at + 3]) >> 11
         return _clamp16(out) & ~1
 
     def _decode_brr(self, voice: Voice) -> None:

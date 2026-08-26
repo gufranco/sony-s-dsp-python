@@ -596,7 +596,7 @@
     "Where the decay and sustain times stop being measured. Both columns are internally consistent to within two per cent of one endpoint, and the document never says what level that endpoint is.",
     "The sample rate. 32 kHz falls out of the noise clock table's top row rather than being printed as a figure.",
     "Anything about cycles. The manual describes the DSP in terms of times and frequencies, so nothing here can settle when within a sample period a register is read.",
-    "The gaussian interpolation kernel. The manual describes pitch as a 14 bit value and never gives the filter that resamples.",
+    "The gaussian interpolation kernel. The manual describes pitch as a 14 bit value and never gives the filter that resamples. It is on the die and has never been dumped as a file, so unlike every image this family loads there is no canonical artifact to hash and no digest here to confirm a copy against. A caller may supply their own through Chip(gaussian=...); check_kernel in sdsp/tables.py holds it to the length, the shape and the identity that the four taps of every position sum to 2048, which is weaker than a digest because two different tables can pass it.",
     "What a register holds at power on."
   ],
   "documents": {

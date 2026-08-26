@@ -10,7 +10,29 @@ These are data the silicon carries rather than a design anyone here chose, so
 they are kept apart from the code that walks them. A table can be checked on its
 own, and these are: the kernel is verified symmetric and the rates verified to
 divide the counter range.
+
+`GAUSSIAN` is on a different footing from every other artifact this family reads,
+and the difference is worth stating rather than leaving for somebody to discover.
+The boot program in `sony-s-smp-python` is a file, so a copy is confirmed against
+four digests in a manifest and a wrong copy is refused by name. Nobody has ever
+dumped this kernel as a file. It is on the die, it is read out as behaviour, and
+it circulates as a printed table of numbers, so there is no canonical artifact to
+hash and there is no digest here to check one against.
+
+What stands in is `check_kernel`, which holds a supplied table to what the part's
+own arithmetic requires: the length, the shape, and the identity that the four
+taps of every position sum to one unit. That is weaker than a digest and it is
+what there is. Two different tables can both pass it, so passing means the table
+could be the part's rather than that it is.
 """
+
+from itertools import pairwise
+from typing import TYPE_CHECKING
+
+from .errors import NotAKernel
+
+if TYPE_CHECKING:  # pragma: no cover
+    from collections.abc import Sequence
 
 COUNTER_RANGE = 2048 * 5 * 3
 """The period the envelope counter wraps at, which every rate divides into."""
@@ -529,7 +551,82 @@ GAUSSIAN = (
     1305,
     1305,
 )
-"""The interpolation kernel, one quarter of a symmetric curve."""
+"""The interpolation kernel, one quarter of a symmetric curve.
+
+Read off the die's behaviour rather than out of a file, so unlike every image
+this family loads there is no digest that settles a copy. `check_kernel` is what
+stands in, and the module docstring says what that is and is not worth.
+"""
+
+
+KERNEL_LENGTH = 512
+"""Entries in a quarter curve. The other three quarters are this one read back."""
+
+KERNEL_UNIT = 2048
+"""What the four taps of a position sum to, which is unity in the fixed point
+the interpolator works in."""
+
+KERNEL_TOLERANCE = 0.002
+"""How far a position's four taps may fall from unity.
+
+Not zero, because the table is integers and a rounded curve cannot sum exactly
+at every one of the 256 positions. The published table's worst position is well
+inside this, so a table that misses by more is not a rounding difference.
+"""
+
+
+def check_kernel(kernel: "Sequence[int]") -> tuple[int, ...]:
+    """Refuse a kernel that cannot be the one on the die, and hand back a tuple.
+
+    Every property here is one the interpolator depends on rather than a
+    preference. A short table indexes out of range at `forward + 256`. A table
+    that dips reverses the curve somewhere and produces a resampler that is not
+    a resampler. A position whose taps do not sum to unity changes the volume of
+    a voice according to where between two samples it happens to land, which is
+    audible as a warble on any held note.
+
+    The refusal names the property and what was seen, because a caller holding a
+    table they typed out of an article needs to know which entry to look at.
+
+    This is deliberately not a digest check. There is no canonical dump of this
+    ROM to hash, so two different tables can both pass here. Passing means the
+    table could be the part's, never that it is.
+    """
+    held = tuple(int(value) for value in kernel)
+
+    if len(held) != KERNEL_LENGTH:
+        raise NotAKernel(
+            f"a kernel is {KERNEL_LENGTH} entries, one quarter of the curve; this one has"
+            f" {len(held)}"
+        )
+
+    outside = [at for at, value in enumerate(held) if not -0x8000 <= value < 0x8000]
+    if outside:
+        raise NotAKernel(f"every tap is a signed word; entry {outside[0]} is {held[outside[0]]}")
+
+    falling = [at for at, (first, second) in enumerate(pairwise(held)) if second < first]
+    if falling:
+        at = falling[0]
+        raise NotAKernel(
+            f"the curve rises from nothing to its peak and never dips; entry {at} is"
+            f" {held[at]} and entry {at + 1} is {held[at + 1]}"
+        )
+
+    for offset in range(KERNEL_LENGTH // 2):
+        taps = (
+            held[KERNEL_LENGTH // 2 - 1 - offset],
+            held[KERNEL_LENGTH - 1 - offset],
+            held[KERNEL_LENGTH // 2 + offset],
+            held[offset],
+        )
+        if abs(sum(taps) / KERNEL_UNIT - 1.0) > KERNEL_TOLERANCE:
+            raise NotAKernel(
+                f"the four taps of every position sum to {KERNEL_UNIT}; at position"
+                f" {offset} they sum to {sum(taps)}"
+            )
+
+    return held
+
 
 COUNTER_RATES = (
     30721,

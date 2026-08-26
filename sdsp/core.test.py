@@ -6,7 +6,8 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from sdsp import core
+from sdsp import core, tables
+from sdsp.errors import NotAKernel
 from sdsp.memory import Memory
 
 
@@ -300,6 +301,67 @@ class HelperTest(unittest.TestCase):
 
     def test_a_word_reads_as_signed(self) -> None:
         self.assertEqual([core._signed16(0x7FFF), core._signed16(0x8000)], [32767, -32768])
+
+
+class SuppliedKernelTest(unittest.TestCase):
+    """That a caller's kernel reaches one part and no other.
+
+    Held on the instance rather than rebound on the module, so two parts in one
+    process carry different tables and neither can change what the other reads.
+    A module global would make the last constructor win for everybody.
+    """
+
+    def a_part(self, **options: Any) -> Any:
+        return core.Chip(Memory(), **options)
+
+    def test_a_part_built_with_no_kernel_uses_the_published_one(self) -> None:
+        self.assertIs(self.a_part().gaussian, tables.GAUSSIAN)
+
+    def test_a_supplied_kernel_reaches_the_part(self) -> None:
+        supplied = list(tables.GAUSSIAN)
+
+        found = self.a_part(gaussian=supplied).gaussian
+
+        self.assertEqual(found, tables.GAUSSIAN)
+
+    def test_two_parts_do_not_share_one_kernel(self) -> None:
+        first = self.a_part(gaussian=list(tables.GAUSSIAN))
+
+        second = self.a_part()
+
+        self.assertIsNot(first.gaussian, second.gaussian)
+
+    def test_supplying_one_leaves_the_published_table_alone(self) -> None:
+        held = tuple(tables.GAUSSIAN)
+
+        self.a_part(gaussian=list(tables.GAUSSIAN))
+
+        self.assertEqual(tables.GAUSSIAN, held)
+
+    def test_a_kernel_that_cannot_be_the_parts_is_refused_at_construction(self) -> None:
+        with self.assertRaises(NotAKernel):
+            self.a_part(gaussian=[0] * 512)
+
+    def test_and_the_part_is_not_built(self) -> None:
+        with self.assertRaises(NotAKernel):
+            self.a_part(gaussian=tables.GAUSSIAN[:8])
+
+    def test_a_different_kernel_changes_what_a_voice_interpolates(self) -> None:
+        flat = self.a_part()
+        flat.voices[0].buffer = [0, 0x2000, 0x4000, 0x2000] + [0] * 8
+        flat.voices[0].buffer_position = 0
+        flat.voices[0].interpolation = 0x0800
+
+        with_published = flat._interpolate(flat.voices[0])
+        flat.gaussian = tables.check_kernel(
+            [
+                min(0x7FFF, value + (1 if 256 <= at < 512 else -1))
+                for at, value in enumerate(tables.GAUSSIAN)
+            ]
+        )
+        with_supplied = flat._interpolate(flat.voices[0])
+
+        self.assertNotEqual(with_published, with_supplied)
 
 
 if __name__ == "__main__":

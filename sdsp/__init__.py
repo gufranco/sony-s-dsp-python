@@ -10,6 +10,12 @@ SPC700 uses, resample them through a gaussian kernel, shape them with envelopes,
 and mix into an echo unit carrying an eight tap filter. It all runs on a thirty
 two clock schedule in which the voices are pipelined rather than sequential.
 
+That kernel is on the die and has never been dumped as a file, so unlike every
+image this family loads there is no digest to confirm a copy. A caller who has
+their own table passes it as `Chip(model, memory, gaussian=...)`, where it is
+held on that part alone and checked against what the interpolator requires
+first. `tables.py` says what that check is worth and what it cannot do.
+
 Nothing starts clean. Audio RAM holds whatever it held.
 """
 
@@ -27,10 +33,10 @@ from .core import (
     VOICE_COUNT,
     Voice,
 )
-from .errors import UnknownModelError
+from .errors import NotAKernel, UnknownModelError
 from .memory import UNSET_SEED, Memory, SparseMemory, scramble
 from .models import MODELS, Model
-from .tables import COUNTER_OFFSETS, COUNTER_RATES, GAUSSIAN
+from .tables import COUNTER_OFFSETS, COUNTER_RATES, GAUSSIAN, check_kernel
 from .version import VERSION
 
 __version__ = VERSION
@@ -71,9 +77,11 @@ __all__ = [
     "Chip",
     "Memory",
     "Model",
+    "NotAKernel",
     "SparseMemory",
     "UnknownModelError",
     "Voice",
     "__version__",
+    "check_kernel",
     "scramble",
 ]
