@@ -59,21 +59,39 @@ pick a rate between them. It is not: at one, two and three of the unit's cycles
 per console instruction the checksum is the same every time, which is what a
 figure that comes out of the part rather than out of the harness looks like.
 
-**Five of his checks pass and one fails.** Each check is uploaded as its own
+**Ninety seven of his checks pass and seven fail.** Each check is uploaded as its own
 program carrying both its name and the value a console produced, so the verdict
 is per check rather than for the run:
 
-| Check | Console | This model | |
-| --- | --- | --- | --- |
-| Echo/edl 0 quirk | `72 10 02 2d` | `72 10 02 2d` | agrees |
-| Echo/edl lengths | `48 cb 9a 15` | `48 cb 9a 15` | agrees |
-| Envelope/attack->decay during gain | `46 86 5d bd` | `46 86 5d bd` | agrees |
-| Envelope/decay->sustain during gain | `90 c8 96 de` | `90 c8 96 de` | agrees |
-| Envelope/envelope rates | `90 e0 49 9b` | `90 e0 49 9b` | agrees |
-| Envelope/gain $E0 threshold | `35 9a 05 12` | `37 01 11 18` | **disagrees** |
+His harness reports only the first failure and then restarts, so one
+disagreement used to hide every check after it. The run now records the verdict
+and turns that check's four conditional branches into no-ops so it carries on.
+Nothing rewrites what a check expects: a verdict is ignored, never changed.
 
-Six earlier programs, `Echo/basics` through `Echo/echo calc`, ran without a
-comparison of that shape and are not counted either way.
+| Group | Agree | Disagree |
+| --- | ---: | ---: |
+| Order | 19 | 0 |
+| Timing | 39 | 2 |
+| KON | 17 | 1 |
+| Misc | 8 | 1 |
+| Random | 8 | 0 |
+| Envelope | 4 | 3 |
+| Echo | 2 | 0 |
+| **Total** | **97** | **7** |
+
+Every verdict is in
+[`conformance/cartridge.json`](conformance/cartridge.json) with the value a
+console produced beside the value this model produced.
+
+**The seven are three causes, not seven.** Four are the hidden envelope, and
+only on the gain and key-on paths: `Envelope/gain $E0 threshold`, `Envelope/hidden
+env 0 at kon`, `Envelope/hidden env after gain` and `KON/hidden env flag during
+kon`. `Envelope/hidden env after adsr` agrees, which is what makes the grouping
+worth trusting: the same value is handled correctly down one path and not the
+other. Two more are one cause: `Timing/Voice/V8 outx` and `Timing/Voice/V9 envx`
+report the identical pair of values. The seventh, `Misc/$F0-$FF are not ram`, is
+about the audio unit's register file rather than this part, and is recorded
+against [sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python).
 
 **The failing check is down to one byte.** Everything it feeds its checksum was
 captured at the one instruction that feeds it, 28 bytes, and plain CRC-32 begun

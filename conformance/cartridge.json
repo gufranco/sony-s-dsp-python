@@ -1,0 +1,445 @@
+{
+  "what": "Every check in Shay Green's spc_dsp6 cartridge that this model reached, and what each one said. The values a console produced are in his own uploaded programs; the values here are read out of the unit's memory.",
+  "why": "His harness reports only the first failure and then restarts, so one disagreement hides every check after it. This records the verdict and then turns that check's four conditional branches into no-ops so the run carries on. Nothing rewrites what a check expects: the verdict is ignored, never changed, and every disagreement below is printed as it was measured.",
+  "carried": false,
+  "verdicts": 104,
+  "agreed": 97,
+  "disagreed": 7,
+  "checks": [
+    {
+      "check": "Echo/edl 0 quirk",
+      "agreed": true
+    },
+    {
+      "check": "Echo/edl lengths",
+      "agreed": true
+    },
+    {
+      "check": "Envelope/attack->decay during gain",
+      "agreed": true
+    },
+    {
+      "check": "Envelope/decay->sustain during gain",
+      "agreed": true
+    },
+    {
+      "check": "Envelope/envelope rates",
+      "agreed": true
+    },
+    {
+      "check": "Envelope/gain $E0 threshold",
+      "agreed": false,
+      "console": "35 9a 05 12",
+      "thisModel": "37 01 11 18"
+    },
+    {
+      "check": "Envelope/hidden env 0 at kon",
+      "agreed": false,
+      "console": "41 c4 17 c9",
+      "thisModel": "a6 50 2a 6c"
+    },
+    {
+      "check": "Envelope/hidden env after adsr",
+      "agreed": true
+    },
+    {
+      "check": "Envelope/hidden env after gain",
+      "agreed": false,
+      "console": "81 89 73 45",
+      "thisModel": "6c ce 9d 78"
+    },
+    {
+      "check": "KON/BRR header.03 read times",
+      "agreed": true
+    },
+    {
+      "check": "KON/envx during kon",
+      "agreed": true
+    },
+    {
+      "check": "KON/gain used on last kon sample",
+      "agreed": true
+    },
+    {
+      "check": "KON/hidden env flag during kon",
+      "agreed": false,
+      "console": "fb 67 2f 54",
+      "thisModel": "9b 44 93 a9"
+    },
+    {
+      "check": "KON/kon as prev sample ends",
+      "agreed": true
+    },
+    {
+      "check": "KON/kon clears independent",
+      "agreed": true
+    },
+    {
+      "check": "KON/kon decoding when another kon",
+      "agreed": true
+    },
+    {
+      "check": "KON/kon every other sample",
+      "agreed": true
+    },
+    {
+      "check": "KON/kon stops endx of prev sample",
+      "agreed": true
+    },
+    {
+      "check": "KON/kon then another kon",
+      "agreed": true
+    },
+    {
+      "check": "KON/kon then change pitch",
+      "agreed": true
+    },
+    {
+      "check": "KON/kon then flg.80",
+      "agreed": true
+    },
+    {
+      "check": "KON/kon then flg.80 then kon",
+      "agreed": true
+    },
+    {
+      "check": "KON/kon then koff",
+      "agreed": true
+    },
+    {
+      "check": "KON/kon then set sample's end flg",
+      "agreed": true
+    },
+    {
+      "check": "KON/kon unaffected by pitch",
+      "agreed": true
+    },
+    {
+      "check": "KON/kon when prev sample at end",
+      "agreed": true
+    },
+    {
+      "check": "KON/pitch at kon",
+      "agreed": true
+    },
+    {
+      "check": "Misc/$F0-$FF are not ram",
+      "agreed": false,
+      "console": "df 68 a6 6f",
+      "thisModel": "af 3b 52 63"
+    },
+    {
+      "check": "Misc/brr addr wrap-around",
+      "agreed": true
+    },
+    {
+      "check": "Misc/brr early end at many pitches",
+      "agreed": true
+    },
+    {
+      "check": "Misc/brr not always decoding",
+      "agreed": true
+    },
+    {
+      "check": "Misc/counter rate synchronizations",
+      "agreed": true
+    },
+    {
+      "check": "Misc/endx write clears immediately",
+      "agreed": true
+    },
+    {
+      "check": "Misc/interp pos clamped at $7FFF",
+      "agreed": true
+    },
+    {
+      "check": "Misc/noise rates",
+      "agreed": true
+    },
+    {
+      "check": "Misc/voice sums clamped each time",
+      "agreed": true
+    },
+    {
+      "check": "Order/brr end uses curr header",
+      "agreed": true
+    },
+    {
+      "check": "Order/brr interp pos clamp time",
+      "agreed": true
+    },
+    {
+      "check": "Order/edl before inc offset",
+      "agreed": true
+    },
+    {
+      "check": "Order/endx after final brr decode",
+      "agreed": true
+    },
+    {
+      "check": "Order/env run after being used",
+      "agreed": true
+    },
+    {
+      "check": "Order/envx uses env before koff",
+      "agreed": true
+    },
+    {
+      "check": "Order/envx uses prev env",
+      "agreed": true
+    },
+    {
+      "check": "Order/esa applied after echo write",
+      "agreed": true
+    },
+    {
+      "check": "Order/flg.80 after env used",
+      "agreed": true
+    },
+    {
+      "check": "Order/flg.80 clears next envx",
+      "agreed": true
+    },
+    {
+      "check": "Order/koff before env runs",
+      "agreed": true
+    },
+    {
+      "check": "Order/kon env after used",
+      "agreed": true
+    },
+    {
+      "check": "Order/loop addr read in prev sample",
+      "agreed": true
+    },
+    {
+      "check": "Order/noise rate flg.1F",
+      "agreed": true
+    },
+    {
+      "check": "Order/pitch added before interp",
+      "agreed": true
+    },
+    {
+      "check": "Order/pitch after brr",
+      "agreed": true
+    },
+    {
+      "check": "Order/pitch mod uses prev sample",
+      "agreed": true
+    },
+    {
+      "check": "Order/voice 0 noise",
+      "agreed": true
+    },
+    {
+      "check": "Order/vol applied on final sample",
+      "agreed": true
+    },
+    {
+      "check": "Random/brr before playing",
+      "agreed": true
+    },
+    {
+      "check": "Random/brr while playing",
+      "agreed": true
+    },
+    {
+      "check": "Random/echo data",
+      "agreed": true
+    },
+    {
+      "check": "Random/echo fir",
+      "agreed": true
+    },
+    {
+      "check": "Random/envelope",
+      "agreed": true
+    },
+    {
+      "check": "Random/kon pitch",
+      "agreed": true
+    },
+    {
+      "check": "Random/pitch mod",
+      "agreed": true
+    },
+    {
+      "check": "Random/voice volumes",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Echo/22-23 echo read",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Echo/22-25 fir",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Echo/26 efb",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Echo/28-29 flg.20",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Echo/29 edl",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Echo/29 esa",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Echo/29-30 echo write",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Misc/27 pmon",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Misc/28 dir",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Misc/28 eon",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Misc/28 non",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Misc/29 kon cleared",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Misc/30 flg.1F",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Misc/30 koff",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Misc/30 kon",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V1 srcn.loop",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V1 srcn.start",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V2 adsr0.0F",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V2 adsr0.70",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V2 adsr0.80",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V2 dir.loop.lsb",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V2 dir.loop.msb",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V2 dir.start.lsb",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V2 dir.start.msb",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V2 pitchl",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V3 adsr1.1F",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V3 adsr1.E0",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V3 BRR.header.03",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V3 BRR.sample.lsb",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V3 BRR.sample.msb",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V3 flg.80",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V3 gain.1F",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V3 gain.60",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V3 gain.7F",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V3 gain.80",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V3 pitchh",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V4-5 vvol",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V7 endx cleared",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V7 endx set",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V8 outx",
+      "agreed": false,
+      "console": "a2 07 6d 93",
+      "thisModel": "d0 c2 83 6f"
+    },
+    {
+      "check": "Timing/Voice/V9 envx",
+      "agreed": false,
+      "console": "a2 07 6d 93",
+      "thisModel": "d0 c2 83 6f"
+    }
+  ],
+  "verified": true,
+  "evidence": "97 of 104 checks agree with a value taken on a console, byte for byte.",
+  "howToSettleIt": "Four of the seven disagreements are the hidden envelope on the gain and key-on paths, and the same subsystem agrees on the ADSR path, which is where to look. Two more are one cause: V8 outx and V9 envx report the same pair of values. The seventh, Misc/$F0-$FF are not ram, is about the audio unit's register file rather than this part.",
+  "producedBy": "A cut-down console driving the cartridge into a composed audio unit. It is not carried by any member of this family and deliberately so: a console processor does not belong in a model of the sound generator. sony-s-smp-python records why under what is deliberately not modelled. What is carried is this record, so the verdicts can be disputed without rebuilding the harness.",
+  "howToRepeat": "Compose mos65xx-python with sony-s-smp-python, decode the cartridge as LoROM, wire $2140-$2143 to the unit's four ports, and watch for the four-byte comparison against $dc through $df that every one of his checks ends with."
+}
