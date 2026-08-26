@@ -97,11 +97,44 @@ with `snes_spc` across 15,360 samples and disagrees with the same author's
 hardware check, so the two are reaching different ground: either the corpus does
 not cover what the check covers, or something between them is at fault.
 
-**What is not known.** What the count of 126 counts. The check reports it from a
-sixteen bit variable at `$0000` in its own program, halved on the way out, and
-reading that program far enough to name the quantity is the next step. It is a
-bounded job: the program is 64 kilobytes, it is captured, and this family has a
-disassembler for it.
+**The divergence is real, and it no longer needs a cartridge to see.** The
+failing check was captured at the instant the audio unit jumps into it and
+written back out as a file that both this family and the author's own library
+load. `snes_spc 0.9.0` was built from source and handed the same file. Run with
+no console attached at all:
+
+| Running the same program, no console | Result |
+| --- | --- |
+| This family's sound generator, in the composed audio unit | `a2 c9 a2 2b` |
+| `snes_spc 0.9.0`, by the author of the check | `00 ed 26 be` |
+
+Both are settled rather than caught mid-run: unchanged across one, two and four
+million instructions on one side and one hundred, two hundred and four hundred
+thousand samples on the other.
+
+That is the useful shape. The neighbouring member ran the same experiment for the
+processor and the two implementations agreed exactly, which is what tells us this
+one is a real difference between two models of this part rather than an artefact
+of how either was driven.
+
+What the check does, read out of its own code: it writes `$ff` to voice 0's gain
+register, which is bent increase at rate 31, then `$e0`, which is bent increase at
+rate 0, waits, and reports a sixteen bit count halved on the way out. This model
+makes that count 126 and a console makes it 78.
+
+**What is not known.** Where the two implementations part company inside that
+sequence. It is now a bounded job rather than a cartridge run: both are on this
+machine, both take under a minute, and the state of one can be compared against
+the state of the other after any number of samples.
+
+**A third opinion was read and it agrees with this model.** The MiSTer SNES core
+keeps a latched flag for the bent increase, sets it from the freshly computed
+envelope with `>= 0x600`, and uses it on the following step, which is what this
+package does by testing the previous step's hidden envelope. It also sets that
+flag when the computed value overflows either way, which this package did not.
+Adding that made no difference to the check, so it is not the cause, and the line
+stands as it was. That core is another implementation rather than a measurement,
+so it is a third opinion and not a rung.
 
 **What would settle or reopen it.** Isolating that check and reading what it
 expects, which is in the cartridge rather than in anybody's prose. Failing that,
