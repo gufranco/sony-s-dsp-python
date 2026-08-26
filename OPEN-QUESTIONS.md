@@ -30,16 +30,42 @@ while a known program plays. Neither is available here.
 nothing about the arithmetic between them.
 
 **What this project follows.** A corpus of real game configurations, cross
-checked sample for sample against a second implementation of the same part: 240
+checked sample for sample against another implementation of the same part: 240
 cases and 15,360 samples.
+
+**Which implementation, exactly.** `snes_spc 0.9.0` by Shay Green, which is what
+snes9x carries at `apu/bapu/dsp/SPC_DSP.cpp`. Naming the author rather than the
+emulator around it changes the reading in both directions. It is stronger than a
+generic emulator, because the same person wrote the programs that hold an audio
+unit to a console. It is weaker than two sources, because for that same reason
+it is one: agreeing with `snes_spc` and agreeing with his test programs is one
+judgement, not two.
 
 **Why.** It is the only source that reaches the audio at all. What it settles is
 that two implementations agree, which is not the same as either being right about
 silicon, and the record names the rung rather than presenting the agreement as a
 measurement.
 
-**What would settle or reopen it.** A recording of a real audio unit playing a
-known program, compared sample for sample.
+**What is now known.** His `spc_dsp6.sfc` carries 111 checks with expectations
+taken on a console, and it is no longer out of reach. Driven at this model
+through the composed audio unit in
+[sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python), it runs the
+echo group, reaches the envelope group, and reports a disagreement with a table
+checksum of `E7EEFEC8`.
+
+That is the interesting result rather than a disappointing one. This model agrees
+with `snes_spc` across 15,360 samples and disagrees with the same author's
+hardware check, so the two are reaching different ground: either the corpus does
+not cover what the check covers, or something between them is at fault.
+
+**What is not known.** Which of the 111 disagrees, and whether the fault is in
+this model, in the composed unit that clocks it, or in the harness that drove the
+cartridge. Nothing here separates those.
+
+**What would settle or reopen it.** Isolating that check and reading what it
+expects, which is in the cartridge rather than in anybody's prose. Failing that,
+a recording of a real audio unit playing a known program, compared sample for
+sample.
 
 ### The gaussian interpolation kernel.
 

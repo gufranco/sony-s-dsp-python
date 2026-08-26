@@ -176,7 +176,7 @@ dsp = Chip("s-dsp", Memory())
 | Rate table | Nintendo's noise clock table 3-7-4, all 32 rows | Manufacturer, exhaustive |
 | Attack times | Nintendo's table 3-7-2, all 16 rows | Manufacturer, exhaustive |
 | Decay and sustain | Nintendo's table 3-7-2, all 39 rows, relative to one endpoint the manual omits | Manufacturer, relative |
-| Whole chip | 15,360 samples against snes9x's `SPC_DSP.cpp` | An emulator, which is the weakest rung here |
+| Whole chip | 15,360 samples against `snes_spc 0.9.0`, carried inside snes9x | Another implementation, which is the weakest rung here |
 | Real configurations | 240 register states from real music dumps | Shaped by hardware |
 | BRR filters | All four filters, every shift including the clamped range | Behavioural |
 | Envelopes | ADSR plus all four gain modes | Behavioural |
@@ -196,10 +196,19 @@ pins all of them with the page each was read from, and
 to them. That covers every register address, every one of the 32 rate table
 entries, and every attack time.
 
-**snes9x** decides the rest, which is the audio itself. That is an emulator, and
-agreement with it means agreement with that program rather than with the chip.
-[`conformance/divergences.json`](conformance/divergences.json) says so as its
-first and highest-severity entry, along with what a real recording would settle.
+**`snes_spc 0.9.0`** decides the rest, which is the audio itself. It is what
+snes9x carries at `apu/bapu/dsp/SPC_DSP.cpp`, whose first line reads
+`// snes_spc 0.9.0.` and whose licence block reads `Copyright (C) 2007 Shay
+Green`. Naming it matters in both directions. It is stronger than a generic
+emulator, because its author is the person who also wrote the test programs that
+hold an audio unit to a console. It is weaker than two sources, because for the
+same reason it is one: agreeing with `snes_spc` and agreeing with Shay Green's
+test programs is one judgement, not two.
+
+Agreement with it still means agreement with that program rather than with the
+chip. [`conformance/divergences.json`](conformance/divergences.json) says so as
+its first and highest-severity entry, along with what a real recording would
+settle.
 
 > [!NOTE]
 > The manual's OCR text layer interleaves the table columns. Every figure was

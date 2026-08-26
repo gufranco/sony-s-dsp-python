@@ -13,7 +13,7 @@
       "documentSays": "Times and frequencies for the envelope and the noise clock, the register map, the BRR block format, and nothing at all about the sample values the chip produces.",
       "referenceDoes": "Produces sample values, which is what corpus.json records.",
       "packageFollows": "reference",
-      "reasoning": "The audio this model produces is checked against an emulator, and no better source is currently on the machine. That is worth stating plainly rather than leaving implied by the file names: agreement with the corpus means agreement with snes9x, and where snes9x is wrong this model is wrong with it. The tables underneath the audio no longer rest on that: every entry of the rate table is now checked against Nintendo's own noise clock frequencies, and every attack time against Nintendo's own figures.",
+      "reasoning": "The audio this model produces is checked against snes_spc 0.9.0, which is Shay Green's and is what snes9x carries. A better source exists and has now been run: his spc_dsp6.sfc carries 111 checks taken on a console. It reaches the envelope group against the composed audio unit and reports a disagreement, and which check disagrees is not yet isolated. That is worth stating plainly rather than leaving implied by the file names: agreement with the corpus means agreement with snes_spc, and where snes_spc is wrong this model is wrong with it. It also means the corpus and his test programs are one source rather than two, which is why the disagreement between them is worth chasing rather than explaining away. The tables underneath the audio no longer rest on that: every entry of the rate table is now checked against Nintendo's own noise clock frequencies, and every attack time against Nintendo's own figures.",
       "wouldSettleIt": "A recording taken off a real S-SMP: a known BRR sample, a known register state, and the digital output captured. Failing that, an FPGA core derived from a die photograph rather than from an emulator."
     },
     {
@@ -71,5 +71,7 @@
       "reasoning": "Nothing here begins cleared. A register that has not been written holds an arbitrary value derived from a seed, so a driver that depends on a register it never wrote fails visibly rather than working by accident.",
       "wouldSettleIt": "A measurement of a real S-SMP immediately after power on, repeated across parts."
     }
-  ]
+  ],
+  "reference": "snes_spc 0.9.0 by Shay Green, carried inside snes9x 1.63 at apu/bapu/dsp/SPC_DSP.cpp and driven through conformance/ref into corpus.json. Another implementation, which is the lowest rung this family recognises. Naming its author rather than the emulator around it cuts both ways: it is stronger than a generic emulator, and it is not independent of that author's hardware test programs, so agreeing with both is one judgement rather than two.",
+  "readOn": "2026-08-26"
 }
