@@ -1,0 +1,27 @@
+{
+  "note": "Every document this package is held to, by identity rather than by name. conformance/documents.py brings each one down again and refuses anything whose digest does not match.",
+  "authority": {
+    "1": "A manufacturer document. What the maker of the hardware printed about it.",
+    "2": "A recording taken off real hardware. Nothing here occupies that rung.",
+    "3": "Independent research, for what no manufacturer printed."
+  },
+  "whyNotCarriedHere": "This is Nintendo's document, not this project's, and this repository is public. What is carried is the identity, which is what makes a copy checkable.",
+  "readOn": "2026-08-27",
+  "partsWithNoDocument": {},
+  "documents": [
+    {
+      "file": "manufacturer/book1_text.pdf",
+      "rung": 1,
+      "publisher": "Nintendo of America Inc.",
+      "title": "SNES Development Manual, Book I",
+      "date": "undated",
+      "retrievedFrom": "https://archive.org/download/SNESDevManual/book1_text.pdf",
+      "covers": ["s-dsp"],
+      "settles": "The register map, the rate table and the attack times.",
+      "sha256": "f1405241000046abba7849376d2ec53cf85f1ad2e9950d69a7c2cf1f3ff6b791",
+      "bytes": 21022582,
+      "pages": 240,
+      "figuresAreImages": "The text layer covers the running text and stops at the figures, so a page whose body is a diagram carries only its heading. A citation into one of those is followed by rendering the page and reading it."
+    }
+  ]
+}

@@ -4,7 +4,7 @@ A model of the Sony S-DSP that runs on the clock schedule the hardware runs on.
 
 [![CI](https://github.com/gufranco/sony-s-dsp-python/actions/workflows/ci.yml/badge.svg)](https://github.com/gufranco/sony-s-dsp-python/actions/workflows/ci.yml)
 
-**8** voices, **240** cases from real game configurations, **0** failures, **15,360** samples cross-checked, **97** of **104** checks taken on a console agree, every rate, attack time and register address held to Nintendo's own tables, **554** tests, **100%** statement and branch coverage, no dependencies
+**8** voices, **240** cases from real game configurations, **0** failures, **15,360** samples cross-checked, **97** of **104** checks taken on a console agree, every rate, attack time and register address held to Nintendo's own tables, **586** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 from sdsp import Chip, Memory
@@ -441,6 +441,13 @@ promoting the rung below it.
 |:-------|:---------|
 | The corpus in [`conformance/corpus.json`](conformance/corpus.json) | Real game configurations, cross-checked sample for sample |
 
+
+Fetching it is a command rather than an exercise. [`conformance/documents.json`](conformance/documents.json) carries the full digest, the byte count and a fetchable address, and [`conformance/documents.py`](conformance/documents.py) brings it down into `docs/`, which git ignores, and refuses anything whose digest does not match.
+
+```bash
+python3 -m conformance.documents          # fetch and verify the digest
+python3 -m conformance.documents --check  # verify what is already here
+```
 ## Citing this
 [CITATION.cff](CITATION.cff) is kept in step with the released version by the
 same script that stamps the package, so the version it names is the version that
