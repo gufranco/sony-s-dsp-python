@@ -64,82 +64,82 @@
       {
         "address": "0C",
         "register": "MVOL (L)",
-        "function": "Main Volume (L)"
+        "functionQuote": "Main Volume (L)"
       },
       {
         "address": "1C",
         "register": "MVOL (R)",
-        "function": "Main Volume (R)"
+        "functionQuote": "Main Volume (R)"
       },
       {
         "address": "2C",
         "register": "EVOL (L)",
-        "function": "Echo Volume (L)"
+        "functionQuote": "Echo Volume (L)"
       },
       {
         "address": "3C",
         "register": "EVOL (R)",
-        "function": "Echo Volume (R)"
+        "functionQuote": "Echo Volume (R)"
       },
       {
         "address": "4C",
         "register": "KON",
-        "function": "Key On, D0-D7 correspond to Voice0-Voice7"
+        "functionQuote": "Key On, D0-D7 correspond to Voice0-Voice7"
       },
       {
         "address": "5C",
         "register": "KOF",
-        "function": "Key Off"
+        "functionQuote": "Key Off"
       },
       {
         "address": "6C",
         "register": "FLG",
-        "function": "Designated on/off of reset, mute, echo, and noise clock"
+        "functionQuote": "Designated on/off of reset, mute, echo, and noise clock"
       },
       {
         "address": "7C",
         "register": "ENDX",
-        "function": "Indicates source end block"
+        "functionQuote": "Indicates source end block"
       },
       {
         "address": "0D",
         "register": "EFB",
-        "function": "Echo Feedback"
+        "functionQuote": "Echo Feedback"
       },
       {
         "address": "1D",
         "register": "---",
-        "function": "Not Used"
+        "functionQuote": "Not Used"
       },
       {
         "address": "2D",
         "register": "PMON",
-        "function": "Pitch modulation of Voice i with OUTX of Voice (i-1) as modulated wave"
+        "functionQuote": "Pitch modulation of Voice i with OUTX of Voice (i-1) as modulated wave"
       },
       {
         "address": "3D",
         "register": "NON",
-        "function": "Noise on/off, D0-D7 correspond to Voice0-Voice7"
+        "functionQuote": "Noise on/off, D0-D7 correspond to Voice0-Voice7"
       },
       {
         "address": "4D",
         "register": "EON",
-        "function": "Echo On/Off"
+        "functionQuote": "Echo On/Off"
       },
       {
         "address": "5D",
         "register": "DIR",
-        "function": "Off-set address of source directory"
+        "functionQuote": "Off-set address of source directory"
       },
       {
         "address": "6D",
         "register": "ESA",
-        "function": "Off-set address of echo region, Echo Start Address"
+        "functionQuote": "Off-set address of echo region, Echo Start Address"
       },
       {
         "address": "7D",
         "register": "EDL",
-        "function": "Echo Delay. Only lower level 4 bits active."
+        "functionQuote": "Echo Delay. Only lower level 4 bits active."
       }
     ],
     "filterCoefficients": {
@@ -602,8 +602,8 @@
   "documents": {
     "developmentManual": {
       "publisher": "Nintendo of America Inc.",
-      "title": "SNES Development Manual, Book 1",
-      "section": "Book 3, the SNES sound source: chapter 7 Register Used, chapter 2 BRR",
+      "title": "SNES Development Manual, Book I",
+      "section": "Section 3, Super NES Sound: chapter 7 Register Used, chapter 2 BRR",
       "readOn": "2026-08-21",
       "retrievedFrom": "archive.org/details/SNESDevManual, book1_text.pdf",
       "sha256": "f1405241000046abba7849376d2ec53cf85f1ad2e9950d69a7c2cf1f3ff6b791",

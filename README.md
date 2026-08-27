@@ -435,7 +435,7 @@ promoting the rung below it.
 
 | Document | Used for |
 |:---------|:---------|
-| Nintendo of America Inc., *SNES Development Manual, Book 2* | The register map, the rate table and the attack times, quoted with the page each came from |
+| Nintendo of America Inc., *SNES Development Manual, Book I*, Section 3 | The register map, the rate table and the attack times, quoted with the page each came from |
 
 | Source | Used for |
 |:-------|:---------|
