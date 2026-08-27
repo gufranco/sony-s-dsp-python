@@ -7,52 +7,56 @@
       {
         "offset": "00",
         "register": "VOL (L)",
-        "function": "Left Channel Volume"
+        "functionQuote": "Left Channel Volume"
       },
       {
         "offset": "01",
         "register": "VOL (R)",
-        "function": "Right Channel Volume"
+        "functionQuote": "Right Channel Volume"
       },
       {
         "offset": "02",
         "register": "P (L)",
-        "function": "The total 14 bits of P(H) and P(L) express Pitch Height"
+        "functionQuote": "The total 14 bits of P(H) and P(L) express Pitch Height",
+        "assembled": true
       },
       {
         "offset": "03",
         "register": "P (H)",
-        "function": "The total 14 bits of P(H) and P(L) express Pitch Height"
+        "functionQuote": "The total 14 bits of P(H) and P(L) express Pitch Height",
+        "assembled": true
       },
       {
         "offset": "04",
         "register": "SRCN",
-        "function": "Designates source number from 0-255"
+        "functionQuote": "Designates source number from 0-255"
       },
       {
         "offset": "05",
         "register": "ADSR (1)",
-        "function": "Address is designated by D7=1 of ADSR(1); when D7=0, Gain is operative"
+        "functionQuote": "Address is designated by D7=1 of ADSR(1); when D7=0, Gain is operative",
+        "assembled": true
       },
       {
         "offset": "06",
         "register": "ADSR (2)",
-        "function": "Address is designated by D7=1 of ADSR(1); when D7=0, Gain is operative"
+        "functionQuote": "Address is designated by D7=1 of ADSR(1); when D7=0, Gain is operative",
+        "assembled": true
       },
       {
         "offset": "07",
         "register": "GAIN",
-        "function": "Envelope can be freely designated by the program"
+        "functionQuote": "Envelope can be freely designated by the program"
       },
       {
         "offset": "08",
         "register": "ENVX",
-        "function": "Present value of envelope which DSP rewrites at each Ts"
+        "functionQuote": "Present value of envelope which DSP rewrites at each Ts"
       },
       {
         "offset": "09",
         "register": "OUTX",
-        "function": "Value after envelope multiplication & before VOL multiplication (present wave height value)"
+        "functionQuote": "Value after envelope multiplication & before VOL multiplication (present wave height value)"
       }
     ],
     "voiceStride": {
@@ -460,7 +464,6 @@
     "manualTable": "3-7-4",
     "manualPage": "3-7-8",
     "pdfPage": 177,
-    "note": "It is only possible to write into these registers from the CPU section.",
     "rows": [
       {
         "nck": "00",
@@ -590,7 +593,8 @@
         "nck": "1F",
         "frequency": "32 KHz"
       }
-    ]
+    ],
+    "quote": "It is only possible to write into these registers from the CPU section."
   },
   "notStated": [
     "Where the decay and sustain times stop being measured. Both columns are internally consistent to within two per cent of one endpoint, and the document never says what level that endpoint is.",
