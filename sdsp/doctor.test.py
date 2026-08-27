@@ -3,11 +3,11 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from typing import Any
+from typing import Any, override
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from sdsp import doctor
+from sdsp import core, doctor, memory
 
 
 class Complaint(Exception):
@@ -96,6 +96,25 @@ class ExamineTest(unittest.TestCase):
         for one in doctor.examine():
             if one.name == "s-dsp":
                 self.assertIn("8 voices", one.detail)
+
+    def test_and_with_the_flags_the_reset_left_behind(self) -> None:
+        """Driven rather than described, so a reset that stopped working shows here."""
+        found = [one for one in doctor.examine() if one.name == "s-dsp"]
+
+        self.assertIn("resets to flags $E0", found[0].detail)
+
+    def test_a_part_that_builds_and_will_not_reset_is_reported_as_broken(self) -> None:
+        class WillNotReset(core.Chip):
+            @override
+            def reset(self) -> Any:
+                raise Complaint("the pin did nothing")
+
+        def build(_name: str) -> Any:
+            return WillNotReset(memory.Memory())
+
+        found = [one for one in doctor.examine(build=build) if one.name == "s-dsp"]
+
+        self.assertFalse(found[0].ok)
 
 
 class MemoryTest(unittest.TestCase):

@@ -34,7 +34,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from sdsp import memory, models  # noqa: E402
+from sdsp import core, memory, models  # noqa: E402
 from sdsp.version import VERSION  # noqa: E402
 
 CORPUS = ROOT / "conformance" / "corpus.json"
@@ -91,9 +91,16 @@ def _default_build(name: str) -> Any:
 
 
 def _part(name: str, build: Callable[[str], Any]) -> "Finding":
-    """Whether that part builds, saying exactly what stopped it if not."""
+    """Whether that part builds and resets, saying what stopped it if not.
+
+    The reset is driven rather than described. It is the one event that clears
+    every register, puts all eight voices into release and raises the mute and
+    echo-disable bits the part comes out of reset holding, so a report that only
+    built the part has said nothing about the state every caller starts from.
+    """
     try:
         chip = build(name)
+        chip.reset()
     except Exception as trouble:
         return Finding(
             name,
@@ -107,7 +114,8 @@ def _part(name: str, build: Callable[[str], Any]) -> "Finding":
         name,
         True,
         f"{described.voices} voices, {described.registers} registers,"
-        f" model {getattr(chip, 'model', name)}",
+        f" model {getattr(chip, 'model', name)},"
+        f" resets to flags ${chip.read(core.REG_FLG):02X}",
     )
 
 
