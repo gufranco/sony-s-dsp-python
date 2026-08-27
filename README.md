@@ -4,7 +4,7 @@ A model of the Sony S-DSP that runs on the clock schedule the hardware runs on.
 
 [![CI](https://github.com/gufranco/sony-s-dsp-python/actions/workflows/ci.yml/badge.svg)](https://github.com/gufranco/sony-s-dsp-python/actions/workflows/ci.yml)
 
-**8** voices, **240** cases from real game configurations, **0** failures, **15,360** samples cross-checked, **97** of **104** checks taken on a console agree, every rate, attack time and register address held to Nintendo's own tables, **586** tests, **100%** statement and branch coverage, no dependencies
+**8** voices, **240** cases from real game configurations, **0** failures, **15,360** samples cross-checked, **97** of **104** checks taken on a console agree, every rate, attack time and register address held to Nintendo's own tables, **594** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 from sdsp import Chip, Memory

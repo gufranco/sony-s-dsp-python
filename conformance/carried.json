@@ -1,0 +1,36 @@
+{
+  "what": "The tables this package carries in source because no artifact exists to fetch, pinned by digest the way a fetched image is.",
+  "why": "conformance/documents.py refuses a document whose digest does not match, and that mechanism has nothing to say about data that was never published as a file. These tables are on the die. They are read out as behaviour and they circulate as printed numbers, so there is no canonical artifact to hash and no publisher's digest to check one against. What is pinned here is what this package holds, which is a weaker claim and a different one: it does not say the table is the part's, it says the table has not changed since somebody last argued that it is.",
+  "howTheDigestIsTaken": "sha256 of the values as compact JSON, json.dumps(list(table), separators=(',', ':')) encoded as UTF-8. Of the values rather than of the source, so reformatting the module, rewrapping a line or changing a comment leaves the digest alone and changing a number does not.",
+  "whatThisIsNot": "A claim that the table is correct. Two different tables can both satisfy every self-check in sdsp/tables.py, and the digest cannot tell them apart either. It closes a narrower hole: an edit that preserves the invariants is no longer invisible.",
+  "notStated": "Nobody has published any of these as a file. The kernel is on the die and has never been dumped; the counter tables are read out of behaviour. So no entry here can carry a publisher's digest, and none pretends to.",
+  "tables": [
+    {
+      "name": "GAUSSIAN",
+      "module": "sdsp/tables.py",
+      "entries": 512,
+      "sha256": "90a2a996ab8914c9f4c6bbb191cebdfb09fab1684b4138effbb50a128ba957c5",
+      "what": "The interpolation kernel every voice reads through when it resamples a decoded sample to the pitch it was asked for.",
+      "selfCheck": "check_kernel holds a supplied table to the length, the shape and the identity that the four taps of every position sum to 2048.",
+      "whyItMattersMost": "It shapes every sample the chip emits, so an error in it is audible everywhere and is invisible to every check in hardware.test.py, which can only reach the tables the manual describes.",
+      "provenance": "Read out as behaviour and circulated as printed numbers. A closed form was searched for on 2026-08-25 and none reproduces it: fitted by least squares, the best candidates leave a peak error of 18 on a maximum of 1305 for cos^3.5, 21 for a gaussian of sigma 0.63 and 38 for a cubic B-spline. So the table is stored rather than computed, and there is no derivation to publish in its place.",
+      "openQuestion": "gaussian-kernel-is-undocumented"
+    },
+    {
+      "name": "COUNTER_RATES",
+      "module": "sdsp/tables.py",
+      "entries": 32,
+      "sha256": "746203bec31c321374eeb9c17d631e04e2dad73aa43d3bd5450f01837032a093",
+      "what": "How often the envelope and noise clocks tick, one row per rate.",
+      "selfCheck": "Every rate divides the counter range."
+    },
+    {
+      "name": "COUNTER_OFFSETS",
+      "module": "sdsp/tables.py",
+      "entries": 32,
+      "sha256": "16e7d43279c418daed4c485d405a173ca019fa3bb2b08a7384769153711eb884",
+      "what": "The stagger that keeps voices sharing a rate from all firing on the same sample.",
+      "selfCheck": "Read beside COUNTER_RATES, which is the only thing that gives an offset meaning."
+    }
+  ]
+}
