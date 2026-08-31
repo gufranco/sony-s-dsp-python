@@ -89,7 +89,16 @@ env 0 at kon`, `Envelope/hidden env after gain` and `KON/hidden env flag during
 kon`. `Envelope/hidden env after adsr` agrees, which is what makes the grouping
 worth trusting: the same value is handled correctly down one path and not the
 other. Two more are one cause: `Timing/Voice/V8 outx` and `Timing/Voice/V9 envx`
-report the identical pair of values. The seventh, `Misc/$F0-$FF are not ram`, is
+report the identical pair of values, and that cause is now named. With a voice
+playing, the only registers this schedule writes on its own are OUTX at phase 3
+and ENVX at phase 4, which are exactly the two those checks sample; every other
+timing check samples a register the console wrote. A read is served straight out
+of the register file with no relation to where in the sample the part is, and a
+phase runs whole, so nothing orders the part's own write against a console read
+inside one phase. That was read off this model rather than off the cartridge, and
+[`sdsp/core.test.py`](sdsp/core.test.py) pins the three facts it rests on so it
+stops holding out loud if a fourth register is ever written by the schedule. The
+seventh, `Misc/$F0-$FF are not ram`, is
 about the audio unit's register file rather than this part, and is recorded
 against [sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python).
 

@@ -364,5 +364,58 @@ class SuppliedKernelTest(unittest.TestCase):
         self.assertNotEqual(with_published, with_supplied)
 
 
+class WhatTheScheduleWritesTest(unittest.TestCase):
+    """Which registers the part writes on its own, and at which phase.
+
+    This is the evidence behind one entry in the record. Two of Shay Green's
+    timing checks disagree with this model, `V8 outx` and `V9 envx`, and they are
+    the only two that sample a register the part writes rather than one the
+    console wrote. A register read is served straight out of the file with no
+    relation to where in the sample the part is, and a phase runs whole, so
+    nothing here orders the part's own write against a console read inside one
+    phase.
+
+    A test rather than a sentence, because the reasoning stops holding the moment
+    a fourth register starts being written by the schedule.
+    """
+
+    def changing(self, samples: int = 8) -> dict[int, set[int]]:
+        dsp = keyed_on(a_voice_ram())
+        for _ in range(64):
+            dsp.clock()
+        found: dict[int, set[int]] = {}
+        for _ in range(samples * 32):
+            before = bytes(dsp.registers)
+            phase = dsp.phase
+            dsp.clock()
+            after = bytes(dsp.registers)
+            moved = {i for i, (a, b) in enumerate(zip(before, after, strict=True)) if a != b}
+            if moved:
+                found.setdefault(phase, set()).update(moved)
+        return found
+
+    def test_the_part_writes_two_registers_of_its_own_while_a_voice_plays(self) -> None:
+        found = self.changing()
+
+        self.assertEqual(sorted(found), [3, 4])
+
+    def test_the_first_of_them_is_the_output_the_check_names(self) -> None:
+        self.assertEqual(self.changing()[3], {core.V_OUTX})
+
+    def test_and_the_second_is_the_envelope_the_other_check_names(self) -> None:
+        self.assertEqual(self.changing()[4], {core.V_ENVX})
+
+    def test_a_read_is_served_without_regard_to_where_the_sample_is(self) -> None:
+        dsp = keyed_on(a_voice_ram())
+        for _ in range(64):
+            dsp.clock()
+
+        seen = {dsp.phase: dsp.read(core.V_OUTX)}
+        dsp.clock()
+        seen[dsp.phase] = dsp.read(core.V_OUTX)
+
+        self.assertEqual(len(seen), 2)
+
+
 if __name__ == "__main__":
     unittest.main()
