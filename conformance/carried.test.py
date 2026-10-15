@@ -1,15 +1,3 @@
-"""That the tables carried in source are the ones that were pinned.
-
-A fetched document is refused when its digest does not match. Data that was never
-published as a file cannot be fetched, so nothing was checking it, and an edit
-that preserved the invariants in `sdsp/tables.py` changed what the model emits
-with nothing to notice. The kernel is the sharpest case: it shapes every sample,
-and no check that reads the manual can reach it.
-
-The digest is of the values rather than of the source, so reformatting the module
-leaves it alone and changing a number does not.
-"""
-
 import hashlib
 import json
 import sys
@@ -54,12 +42,6 @@ class CarriedTableTest(unittest.TestCase):
         self.assertEqual(wrong, [])
 
     def test_a_changed_entry_is_caught(self) -> None:
-        """The check nobody has seen fail, driven against a table that should fail it.
-
-        The change is a sentinel rather than an arithmetic nudge, because these
-        tables hold numbers in one member and rows of numbers in another and the
-        check has to be the same in both.
-        """
         first = self.entries[0]["name"]
         held = getattr(tables, first)
         bent = list(held)
@@ -68,7 +50,6 @@ class CarriedTableTest(unittest.TestCase):
         self.assertNotEqual(digest_of(bent), digest_of(held))
 
     def test_a_reordering_that_keeps_the_same_values_is_caught(self) -> None:
-        """Symmetry and the sum survive a swap. The digest does not."""
         first = self.entries[0]["name"]
         held = getattr(tables, first)
         swapped = list(held)
@@ -77,7 +58,6 @@ class CarriedTableTest(unittest.TestCase):
         self.assertNotEqual(digest_of(swapped), digest_of(held))
 
     def test_every_table_the_module_carries_is_pinned(self) -> None:
-        """So a table added later is pinned rather than joining the unpinned quietly."""
         carried = {
             name
             for name in dir(tables)
@@ -90,7 +70,6 @@ class CarriedTableTest(unittest.TestCase):
         self.assertEqual(carried - pinned, set())
 
     def test_the_record_says_what_a_digest_here_does_not_claim(self) -> None:
-        """It pins what this package holds, never that the table is the part's."""
         self.assertIn("a claim that the table is correct", HELD["whatThisIsNot"].lower())
 
     def test_the_record_says_why_no_publisher_digest_exists(self) -> None:

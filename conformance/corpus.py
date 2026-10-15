@@ -1,29 +1,3 @@
-"""Replay a corpus drawn from real music dumps against this DSP.
-
-The S-DSP has no published per-instruction suite, and the obvious substitute
-cannot ship: a music dump is the music. So the corpus splits along the line
-copyright draws and keeps only the half that describes behaviour.
-
-**What is real here.** The hundred and twenty eight DSP registers out of each
-dump: volumes, pitches, envelope rates, which voices feed the echo, where the
-sample directory sits, the eight filter taps. That is the configuration a driver
-poked into a peripheral. It says how the chip was being driven rather than what
-was being played, and without the samples it reproduces nothing.
-
-**What is not.** The sample data. Every case builds its own from a seed, shaped
-so the directory sits where the real registers point and the voices find blocks
-where their source numbers say they should be.
-
-**Where the audio comes from.** The reference chip, not this implementation, so
-agreement is a cross-check rather than a restatement.
-
-**Why real configurations matter.** A random generator sets an envelope rate to a
-uniform value. A composer does not: real rates cluster where instruments sit,
-real echo delays are chosen, real filter taps are mostly zero until they are not,
-and real drivers key voices on in patterns nothing random produces. Those are the
-configurations the chip actually met, and they are what this corpus carries.
-"""
-
 import hashlib
 import json
 import random
@@ -55,20 +29,12 @@ SPACE = 0x10000
 
 
 def load(path: Path | str | None = None) -> dict[str, Any]:
-    """The corpus, from where it was asked for or from the one that ships."""
     with Path(path or DEFAULT_CORPUS).open() as handle:
         loaded: dict[str, Any] = json.load(handle)
     return loaded
 
 
 def ram_for(case: Mapping[str, Any]) -> Any:
-    """Sample data built from a seed, laid out where the real registers point.
-
-    The registers are real, so the sample directory page and every voice's source
-    number are real too. The blocks themselves are generated, and the directory is
-    written to point at them, which is what lets a real configuration drive
-    synthetic audio.
-    """
     registers = case["registers"]
     rng = random.Random(case["ram_seed"])
     ram = bytearray(rng.randbytes(SPACE))
@@ -92,7 +58,6 @@ def ram_for(case: Mapping[str, Any]) -> Any:
 
 
 def render(case: Mapping[str, Any]) -> list[int]:
-    """What this DSP produces for one case, sample for sample."""
     registers = case["registers"]
     dsp = Chip(Memory(fill=ram_for(case)))
     for address in range(REGISTER_COUNT):
@@ -104,7 +69,6 @@ def render(case: Mapping[str, Any]) -> list[int]:
 
 
 def _label(case: Mapping[str, Any]) -> str:
-    """A name for a case, safe to build even when the case is malformed."""
     registers = case.get("registers")
     if isinstance(registers, list) and len(registers) > REG_DIR:
         return f"directory {registers[REG_DIR]:#04x}"
@@ -112,7 +76,6 @@ def _label(case: Mapping[str, Any]) -> str:
 
 
 def check(case: Mapping[str, Any]) -> str | None:
-    """What went wrong with one case, or nothing when it agreed."""
     try:
         produced = render(case)
     except Exception as error:  # noqa: BLE001
@@ -126,7 +89,6 @@ def check(case: Mapping[str, Any]) -> str | None:
 
 
 def run(cases: list[dict[str, Any]]) -> tuple[int, int, list[str]]:
-    """How many cases agreed, how many did not, and a few that did not."""
     passed = failed = 0
     examples: list[str] = []
     for case in cases:

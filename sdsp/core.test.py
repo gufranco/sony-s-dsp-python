@@ -304,13 +304,6 @@ class HelperTest(unittest.TestCase):
 
 
 class SuppliedKernelTest(unittest.TestCase):
-    """That a caller's kernel reaches one part and no other.
-
-    Held on the instance rather than rebound on the module, so two parts in one
-    process carry different tables and neither can change what the other reads.
-    A module global would make the last constructor win for everybody.
-    """
-
     def a_part(self, **options: Any) -> Any:
         return core.Chip(Memory(), **options)
 
@@ -365,20 +358,6 @@ class SuppliedKernelTest(unittest.TestCase):
 
 
 class WhatTheScheduleWritesTest(unittest.TestCase):
-    """Which registers the part writes on its own, and at which phase.
-
-    This is the evidence behind one entry in the record. Two of Shay Green's
-    timing checks disagree with this model, `V8 outx` and `V9 envx`, and they are
-    the only two that sample a register the part writes rather than one the
-    console wrote. A register read is served straight out of the file with no
-    relation to where in the sample the part is, and a phase runs whole, so
-    nothing here orders the part's own write against a console read inside one
-    phase.
-
-    A test rather than a sentence, because the reasoning stops holding the moment
-    a fourth register starts being written by the schedule.
-    """
-
     def changing(self, samples: int = 8) -> dict[int, set[int]]:
         dsp = keyed_on(a_voice_ram())
         for _ in range(64):

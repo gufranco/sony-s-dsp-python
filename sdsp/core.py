@@ -1,22 +1,3 @@
-"""An S-DSP that runs on the schedule the hardware runs on.
-
-Every sample takes thirty two clocks, and the eight voices are not processed one
-after another inside them. They are pipelined: at any clock one voice is reading
-its sample pointer while another decodes its block and a third writes its output.
-`PIPELINE` at the bottom of this file is that ordering, one entry per clock,
-taken from the hardware.
-
-Modelling it as a loop over voices would be shorter and would be wrong in ways
-that only appear on real music. A voice under pitch modulation reads the previous
-voice's output from whichever clock it lands on. Key on is sampled every other
-sample rather than every sample. The end of sample flag reaches its register two
-clocks after the voice that set it. None of that survives the simplification, and
-all of it is audible.
-
-Nothing here starts clean. Audio RAM holds whatever it held, and the registers a
-reset does not define hold whatever they held.
-"""
-
 from collections.abc import Callable, Sequence
 from typing import Protocol
 
@@ -24,17 +5,9 @@ from .memory import UNSET_SEED, scramble
 from .tables import COUNTER_OFFSETS, COUNTER_RANGE, COUNTER_RATES, GAUSSIAN, check_kernel
 
 Step = Callable[["Chip"], None]
-"""One entry of the thirty two step cycle the DSP walks per sample."""
 
 
 class MemoryLike(Protocol):
-    """The whole of what the DSP needs from the audio RAM it is wired to.
-
-    Naming the two methods rather than the class keeps a caller free to supply
-    real RAM, a test double, or the memory of a running SPC700, and keeps this
-    module from importing any of them.
-    """
-
     def read8(self, address: int) -> int: ...
 
     def write8(self, address: int, value: int) -> None: ...
@@ -104,8 +77,6 @@ def _signed16(value: int) -> int:
 
 
 class Voice:
-    """One of the eight voices, and everything it carries between samples."""
-
     __slots__ = (
         "base",
         "bit",
@@ -139,8 +110,6 @@ class Voice:
 
 
 class Chip:
-    """An S-DSP holding whatever it was holding, which is how one powers up."""
-
     __slots__ = (
         "counter",
         "echo_enabled",
@@ -191,20 +160,6 @@ class Chip:
         reset: bool = True,
         gaussian: Sequence[int] | None = None,
     ) -> None:
-        """A part wired to that memory, resampling through that kernel.
-
-        `gaussian` replaces the interpolation kernel for this part alone. It is
-        held on the instance rather than rebound on the module, so two parts in
-        one process can carry different tables and neither can change what the
-        other reads. Leaving it out uses the table this package publishes.
-
-        Whatever is handed in goes through `check_kernel` first, because a table
-        that skips the checks turns a verified table into an unverified one
-        silently: the part still runs, still produces audio, and the audio is
-        wrong in a way that sounds like a bad recording rather than like a bug.
-        There is no digest that can settle this one, which `tables.py` says at
-        more length.
-        """
         self.memory = memory
         self.registers = bytearray(scramble(REGISTER_COUNT, seed))
         self.voices = [Voice(index) for index in range(VOICE_COUNT)]
@@ -252,11 +207,6 @@ class Chip:
         self.rendered: list[int] = []
 
     def reset(self) -> "Chip":
-        """Put the part where a reset puts it, which is quiet and released.
-
-        Returns the part, so a caller can build and reset in one expression
-        without losing the reference, as every other member of the family does.
-        """
         self._clear_state()
         for index in range(REGISTER_COUNT):
             self.registers[index] = 0
@@ -278,7 +228,6 @@ class Chip:
         return self.registers[address & 0x7F]
 
     def write(self, address: int, value: int) -> None:
-        """Take a register write, and act on the ones that are not just storage."""
         address &= 0x7F
         value &= 0xFF
         self.registers[address] = value
@@ -316,7 +265,6 @@ class Chip:
         return _clamp16(out) & ~1
 
     def _decode_brr(self, voice: Voice) -> None:
-        """Expand four samples of a block, filtering against the two before them."""
         nybbles = self.t_brr_byte * 0x100 + self.memory.read8(
             (voice.brr_address + voice.brr_offset + 1) & 0xFFFF
         )
@@ -626,18 +574,15 @@ class Chip:
         self._echo_write(1)
 
     def clock(self) -> None:
-        """One of the thirty two clocks a sample is made of."""
         for step in SCHEDULE[self.phase]:
             step(self)
         self.phase = (self.phase + 1) & 31
 
     def run(self, clocks: int) -> None:
-        """Run for that many clocks, thirty two of which make one sample."""
         for _ in range(clocks):
             self.clock()
 
     def render(self, samples: int) -> list[int]:
-        """Run long enough to produce that many stereo samples, and return them."""
         self.rendered = []
         self.run(samples * 32)
         return list(self.rendered)
@@ -691,12 +636,6 @@ PIPELINE: dict[int, list[str | tuple[str, int]]] = {
     30: ["misc_30", ("voice_3c", 0), "echo_30"],
     31: [("voice_4", 0), ("voice_1", 2)],
 }
-"""What runs on each of the thirty two clocks, and for which voice.
-
-Reading it down the page shows why a loop over voices cannot stand in for it. On
-clock 17 voice 0 is fetching its sample pointer while voice 5 writes a register
-and voice 6 mixes its output, and all three belong to the same sample.
-"""
 
 SCHEDULE = tuple(
     tuple(

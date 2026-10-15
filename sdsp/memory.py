@@ -1,18 +1,3 @@
-"""Memory that holds what it held, because hardware never hands over a clean one.
-
-The SPC700 sees a flat sixty four kilobyte space. On a console most of it is the
-audio RAM, and that RAM is not cleared at power on: it holds whatever pattern the
-parts settle into. Code that reads a byte it never wrote reads that pattern, and
-on real hardware that read is a bug waiting for the day the pattern changes.
-Memory that begins at zero hides every one of those reads, so nothing here begins
-at zero unless a caller asks for it in writing.
-
-Two shapes are offered because the cost of being unclean differs. `Memory` fills
-a real buffer, which suits a machine that will touch most of its address space.
-`SparseMemory` derives an unwritten byte from its address, which suits a test that
-touches a dozen and should not pay for the whole space to do it.
-"""
-
 import random
 
 UNSET_SEED = 0x5A5A5A5A
@@ -28,22 +13,10 @@ _WORD = 0xFFFFFFFF
 
 
 def scramble(size: int, seed: int = UNSET_SEED) -> bytearray:
-    """A deterministic fill that is nothing like a cleared machine.
-
-    Reproducible from the seed, so a differential run stays comparable, and
-    obviously not clean, so a read of something never written shows up.
-    """
     return bytearray(random.Random(seed).randbytes(size))
 
 
 class SparseMemory:
-    """Unclean everywhere without being allocated anywhere.
-
-    Holds only what has been written and derives the rest from the address, so an
-    unwritten byte still reads as something arbitrary, still differs from zero,
-    and still reads the same twice, at no setup cost.
-    """
-
     __slots__ = (
         "cells",
         "seed",
@@ -70,13 +43,6 @@ class SparseMemory:
 
 
 class Memory:
-    """Flat memory, filled rather than cleared.
-
-    `fill` is a byte, a bytes-like image loaded at the bottom, or None for the
-    scrambled pattern above. A caller that genuinely wants zeroes asks for zero
-    and says so, which is the point: it becomes a decision rather than a default.
-    """
-
     __slots__ = ("data",)
 
     def __init__(

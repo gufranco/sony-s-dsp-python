@@ -1,26 +1,3 @@
-"""Look at this machine and say what is actually here, so a report can be believed.
-
-What goes wrong with this package is rarely a defect in it. It is a corpus that
-is not the corpus everybody else has, a reference driver that was never built so
-the checks needing it quietly did nothing, or audio RAM that somebody assumed
-starts at zero. All three look the same from outside: the numbers disagree.
-
-So this looks, and prints what it found in a form that can be pasted into an
-issue as it stands.
-
-Two rules shape it, and they are the whole point.
-
-Nothing is hidden. A check that fails says what it saw, and a check that itself
-throws is caught and reported as what it threw, named by its type. Swallowing
-either would leave a report that says everything is fine on a machine where
-something is not, which is worse than no report.
-
-Nothing is inferred. Every line is something looked at on this machine just now:
-the version installed, the digest of the corpus present, what an unwritten
-address actually holds. A doctor that reports what ought to be true is a doctor
-nobody can use.
-"""
-
 import hashlib
 import json
 import platform
@@ -46,12 +23,9 @@ DRIVER = ROOT / "conformance" / "ref" / "driver"
 OLDEST_PYTHON = (3, 12)
 
 UNWRITTEN = 0x1234
-"""An address nothing has written to, read to show what the part powers up holding."""
 
 
 class Finding:
-    """One thing that was looked at, and what was there."""
-
     def __init__(self, name: str, ok: bool, detail: str, advice: str | None = None) -> None:
         self.name = name
         self.ok = ok
@@ -60,12 +34,10 @@ class Finding:
 
     @property
     def line(self) -> str:
-        """The one-line form, which is what a reader scans."""
         return f"  {'ok  ' if self.ok else '   !'}  {self.name}: {self.detail}"
 
     @property
     def report(self) -> str:
-        """The same, with what to do about it when there is something to do."""
         if self.ok or not self.advice:
             return self.line
         return f"{self.line}\n         {self.advice}"
@@ -93,13 +65,6 @@ def _default_build(name: str) -> Any:
 
 
 def _part(name: str, build: Callable[[str], Any]) -> "Finding":
-    """Whether that part builds and resets, saying what stopped it if not.
-
-    The reset is driven rather than described. It is the one event that clears
-    every register, puts all eight voices into release and raises the mute and
-    echo-disable bits the part comes out of reset holding, so a report that only
-    built the part has said nothing about the state every caller starts from.
-    """
     try:
         chip = build(name)
         chip.reset()
@@ -122,13 +87,6 @@ def _part(name: str, build: Callable[[str], Any]) -> "Finding":
 
 
 def _memory(build: Callable[[str], Any]) -> "Finding":
-    """That audio RAM powers up holding something, which is what silicon does.
-
-    A model whose memory starts at zero passes every test written against it and
-    disagrees with hardware on the one case that matters: a driver reading a
-    block it never wrote. This reads an address nothing has touched and prints
-    what came back, so a report says which of the two this machine is running.
-    """
     try:
         chip = build("s-dsp")
         held = chip.memory.read8(UNWRITTEN)
@@ -149,12 +107,6 @@ def _memory(build: Callable[[str], Any]) -> "Finding":
 
 
 def _corpus(where: Path | str) -> list["Finding"]:
-    """The corpus that is here, which settles a disagreement about numbers.
-
-    Two people running the same part against different corpora will disagree
-    forever and neither will be wrong. The digest is what ends that in one glance
-    rather than after a round trip.
-    """
     try:
         raw = Path(where).read_bytes()
     except OSError as trouble:
@@ -186,13 +138,6 @@ def _corpus(where: Path | str) -> list["Finding"]:
 
 
 def _driver(where: Path | str) -> "Finding":
-    """Whether the reference is built, since its absence is silent otherwise.
-
-    The corpus was produced by building somebody else's implementation and
-    running it. That build is not needed to check against what it produced, and a
-    machine without it is the normal case rather than a broken one. It is
-    reported so that nobody reads a run that skipped as a run that passed.
-    """
     found = Path(where).exists()
     return Finding(
         "reference driver",
@@ -208,7 +153,6 @@ def examine(
     corpus: Path | str = CORPUS,
     driver: Path | str = DRIVER,
 ) -> list["Finding"]:
-    """Everything worth looking at on this machine, in the order a reader wants it."""
     found = [_python(), _package()]
     found.extend(_part(name, build) for name in sorted(models.MODELS))
     found.append(_memory(build))
@@ -218,7 +162,6 @@ def examine(
 
 
 def report(found: list["Finding"]) -> list[str]:
-    """The lines a person pastes into an issue."""
     unwell = [one for one in found if not one.ok]
     lines = [f"sdsp {VERSION} on {platform.python_version()}, {platform.system()}", ""]
     lines.append("  the machine")

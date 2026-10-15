@@ -1,17 +1,3 @@
-"""Hold this model to the figures Nintendo printed, rather than to prose about them.
-
-The tables in `sdsp/tables.py` were originally lifted from a reference
-implementation, which is evidence about that implementation and not about the
-chip. Nintendo's development manual documents the same tables as times and
-frequencies, and this checks the model against them: every attack time, every
-noise clock frequency, every register address.
-
-Two of the manual's four timing columns are exponential and are internally
-consistent to within two per cent of one endpoint that the document never
-names. That endpoint is measured here and recorded as a divergence rather than
-being folded into the model, because a constant nobody printed is not a fact.
-"""
-
 import json
 import sys
 import unittest
@@ -27,13 +13,10 @@ FACTS: dict[str, Any] = json.loads((HERE / "hardware.json").read_text())
 DIVERGENCES: dict[str, Any] = json.loads((HERE / "divergences.json").read_text())
 
 SAMPLE_RATE = 32000
-"""Samples a second, which the manual gives only as the top row of the noise table."""
 
 ATTACK_STEPS = 64
-"""Ticks from silence to full, since the manual's attack step is one sixty fourth."""
 
 FULL = 0x7FF
-"""The envelope at its top, which is what the manual's tables call 1."""
 
 
 def _seconds(text: str) -> float:
@@ -47,19 +30,12 @@ def _hertz(text: str) -> float:
 
 
 def _attack_seconds(ar: int) -> float:
-    """How long this model takes to climb from silence at that attack rate.
-
-    The fastest rate is the exception the manual prints as zero: it adds a
-    thirty second of full scale rather than a sixty fourth, so it arrives in two
-    ticks rather than sixty four.
-    """
     period = tables.COUNTER_RATES[2 * ar + 1]
     steps = ATTACK_STEPS if ar < 0xF else 2
     return steps * period / SAMPLE_RATE
 
 
 def _decay_ticks(target: int) -> int:
-    """Ticks for this model's exponential fall to reach a level."""
     envelope, ticks = FULL, 0
     while envelope > target:
         envelope -= 1
@@ -69,21 +45,14 @@ def _decay_ticks(target: int) -> int:
 
 
 def _produced(rate: int) -> float:
-    """The noise frequency this model's rate table gives, in hertz."""
     return 0.0 if rate == 0 else SAMPLE_RATE / tables.COUNTER_RATES[rate]
 
 
 def _within(produced: float, printed: float) -> bool:
-    """Whether two frequencies agree to the precision the manual prints them at.
-
-    Nintendo rounds to two significant figures, so 1333 hertz appears as 1.3 KHz
-    and 2667 as 2.7. Three per cent covers that rounding and nothing wider.
-    """
     return abs(produced - printed) <= max(printed * 0.03, 0.5)
 
 
 def _implied_ticks() -> list[float]:
-    """What each printed exponential figure says the fall must have lasted."""
     found = []
     for value, row in enumerate(FACTS["envelope"]["decay"]):
         period = tables.COUNTER_RATES[2 * value + 0x10]
@@ -188,14 +157,6 @@ class RegisterMapTest(unittest.TestCase):
 
 
 class AttackTest(unittest.TestCase):
-    """The one timing column the manual states in absolute terms this model can reach.
-
-    The attack is linear, so it needs no endpoint: sixty four ticks of a sixty
-    fourth each, from silence to full. Every one of the sixteen printed figures
-    is reproduced by this model's rate table to within the manual's own printing
-    precision.
-    """
-
     def test_every_printed_attack_time_is_what_this_model_takes(self) -> None:
         wrong = [
             (row["ar"], row["time"], round(_attack_seconds(int(row["ar"], 16)) * 1000, 2))
@@ -223,12 +184,6 @@ class AttackTest(unittest.TestCase):
 
 
 class NoiseClockTest(unittest.TestCase):
-    """Thirty two frequencies against thirty two rate table entries, one for one.
-
-    This is the strongest check available on the table this model is built
-    around, because it names every entry rather than a ratio between them.
-    """
-
     def test_every_printed_noise_frequency_is_what_this_model_produces(self) -> None:
         wrong = [
             (row["nck"], row["frequency"], round(_produced(int(row["nck"], 16)), 1))
@@ -262,15 +217,6 @@ class NoiseClockTest(unittest.TestCase):
 
 
 class ExponentialTest(unittest.TestCase):
-    """The two columns the manual states relative to an endpoint it never names.
-
-    Both are reproduced by this model's rate table, and neither can be checked in
-    absolute terms, because a time to fall means nothing without saying how far.
-    Each printed figure is divided by the model's tick period, and all thirty
-    nine land on one tick count. That count is the endpoint Nintendo measured to,
-    recovered from the table rather than read from the page.
-    """
-
     def test_every_printed_figure_implies_the_same_length_of_fall(self) -> None:
         implied = _implied_ticks()
 

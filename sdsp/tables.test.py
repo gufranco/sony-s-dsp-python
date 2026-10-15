@@ -95,13 +95,6 @@ class CounterTest(unittest.TestCase):
 
 
 class SuppliedKernelTest(unittest.TestCase):
-    """That a caller's table is held to what the part's arithmetic requires.
-
-    No digest can settle this one, so these are the whole of the gate. Each is
-    driven against a table that breaks exactly that property, because a check
-    nobody has seen refuse is not known to refuse.
-    """
-
     def test_the_published_table_passes_its_own_gate(self) -> None:
         self.assertEqual(tables.check_kernel(tables.GAUSSIAN), tables.GAUSSIAN)
 

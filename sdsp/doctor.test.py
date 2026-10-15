@@ -98,7 +98,6 @@ class ExamineTest(unittest.TestCase):
                 self.assertIn("8 voices", one.detail)
 
     def test_and_with_the_flags_the_reset_left_behind(self) -> None:
-        """Driven rather than described, so a reset that stopped working shows here."""
         found = [one for one in doctor.examine() if one.name == "s-dsp"]
 
         self.assertIn("resets to flags $E0", found[0].detail)
@@ -118,8 +117,6 @@ class ExamineTest(unittest.TestCase):
 
 
 class MemoryTest(unittest.TestCase):
-    """That the report says whether this machine starts clean, because silicon does not."""
-
     def test_unwritten_audio_ram_holds_something(self) -> None:
         for one in doctor.examine():
             if one.name == "audio ram":

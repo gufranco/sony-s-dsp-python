@@ -1,27 +1,3 @@
-"""Read the DSP configuration out of music dumps you already have.
-
-An SPC dump is a snapshot of a running audio unit: a small header, sixty four
-kilobytes of audio RAM, and the hundred and twenty eight DSP registers. Those two
-halves are very different things and only one of them can travel.
-
-**The RAM never leaves.** It holds the BRR samples and the sequence data, which
-together are the music. This tool reads past it and never writes a byte of it
-anywhere.
-
-**The registers are configuration.** Volumes, pitches, envelope rates, which
-voices feed the echo, where the sample directory sits, the eight filter taps.
-They are the parameters a driver poked into a peripheral, they describe how the
-chip was being driven rather than what was being played, and without the samples
-they reproduce nothing. That is the half worth having, because a real driver
-configures the DSP in ways no random generator would think of: envelope rates
-clustered where instruments actually sit, echo delays a composer chose, filter
-taps that are mostly zero except when they are not.
-
-So the corpus generated from this pairs **real register states** with **synthetic
-sample data**, and takes its expected audio from the reference chip. What ships
-is how the hardware was driven, never what came out of it.
-"""
-
 import collections
 import json
 import sys
@@ -46,11 +22,6 @@ REG_EDL = 0x7D
 
 
 def registers(path: Path | str) -> list[int] | None:
-    """The DSP registers in one dump, or nothing if the file is not one.
-
-    Only the register block is read back. The audio RAM in between is skipped
-    rather than loaded, so the music never enters this process at all.
-    """
     path = Path(path)
     try:
         with path.open("rb") as handle:
@@ -66,13 +37,11 @@ def registers(path: Path | str) -> list[int] | None:
 
 
 def dumps(root: Path | str, limit: int | None = None) -> list[Path]:
-    """Every dump under a directory, in a fixed order, up to a limit."""
     found = sorted(Path(root).rglob("*.spc"))
     return found[:limit] if limit else found
 
 
 def census(states: list[list[int]]) -> dict[str, Any]:
-    """What the drivers were doing, with none of what they were playing."""
     directories: collections.Counter[int] = collections.Counter()
     flags: collections.Counter[int] = collections.Counter()
     delays: collections.Counter[int] = collections.Counter()

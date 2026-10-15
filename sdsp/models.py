@@ -1,12 +1,3 @@
-"""Which parts this package covers, and what each one is.
-
-The S-DSP is one part with one behaviour. Sony built it into the S-SMP beside
-the SPC700 and never sold it separately, so there is no family of revisions to
-model. The catalogue exists for the same reason it exists in the sibling
-repositories: a hardware difference discovered later should mean adding an entry
-rather than restructuring the package around it.
-"""
-
 from collections.abc import Callable, Sequence
 from typing import Any, override
 
@@ -14,8 +5,6 @@ from sdsp.errors import UnknownModelError
 
 
 class Model:
-    """One part: what it is, what it carries, and how to build it."""
-
     __slots__ = (
         "aliases",
         "core",
@@ -87,19 +76,6 @@ def _normalise(name: str) -> str:
 
 
 def lookup(name: str | None) -> Model:
-    """The model of that name, however it happens to be written.
-
-    Naming nothing is refused rather than filled in. A default would be the one
-    implicit thing in the call that builds a part, and it is worst where it looks
-    most harmless: a caller who learns to leave the model out against a member
-    covering one part writes the same call against a member covering sixteen.
-    The refusal names every model there is, so somebody who did not know what to
-    pass learns it here rather than from the source.
-
-    Not exported from the package. What a caller wants is the part, and the part
-    carries its own model; handing back a description of a part nobody built
-    reads like a test fixture rather than an interface.
-    """
     if name is None:
         raise UnknownModelError(
             "no model was named, and this package will not choose one for you."

@@ -59,8 +59,6 @@ class BuildTest(unittest.TestCase):
 
 
 class NamingNoneTest(unittest.TestCase):
-    """That leaving the model out is refused, and refused usefully."""
-
     def test_building_without_naming_a_model_is_refused(self) -> None:
         with self.assertRaises(errors.UnknownModelError):
             sdsp.Chip()
