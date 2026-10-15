@@ -34,9 +34,6 @@ packages = ["sdsp"]
 [tool.setuptools.dynamic]
 version = { attr = "sdsp.version.VERSION" }
 
-[tool.setuptools.exclude-package-data]
-sdsp = ["*.test.py"]
-
 [tool.ruff]
 target-version = "py312"
 line-length = 100
