@@ -8,12 +8,18 @@ from typing import Any, override
 
 ROOT = Path(__file__).resolve().parent.parent
 
-from sdsp import environment  # noqa: E402
 
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+def _reachable(root: Path = ROOT, path: list[str] | None = None) -> bool:
+    where = sys.path if path is None else path
+    if str(root) in where:
+        return False
+    where.insert(0, str(root))
+    return True
 
-from sdsp import core, memory, models  # noqa: E402
+
+_reachable()
+
+from sdsp import core, environment, memory, models  # noqa: E402
 from sdsp.version import VERSION  # noqa: E402
 
 CORPUS = ROOT / "conformance" / "corpus.json"
