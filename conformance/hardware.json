@@ -626,7 +626,7 @@
     "whatIsMissing": "A manufacturer data sheet for the S-DSP. None is known to exist, so the top rung of the ladder is occupied by a manual written for a different purpose and the rung a data sheet would occupy is empty.",
     "comparedAgainst": {
       "runner": "conformance/corpus.py",
-      "what": "Real game configurations, replayed sample for sample and compared against what a second implementation of the same part produces: 240 cases and 15,360 samples, none of them derived from this model."
+      "what": "Real game configurations, replayed sample for sample and compared against what a second implementation of the same part produces: 240 cases and 23,040 samples, none of them derived from this model."
     }
   },
   "resetLine": {

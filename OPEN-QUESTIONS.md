@@ -31,7 +31,7 @@ nothing about the arithmetic between them.
 
 **What this project follows.** A corpus of real game configurations, cross
 checked sample for sample against another implementation of the same part: 240
-cases and 15,360 samples.
+cases and 23,040 samples.
 
 **Which implementation, exactly.** `snes_spc 0.9.0` by Shay Green, which is what
 snes9x carries at `apu/bapu/dsp/SPC_DSP.cpp`. Naming the author rather than the
@@ -120,7 +120,7 @@ again with `>=`, leaves the byte at `0x3f` both times. The line stands unchanged
 rather than being adjusted to look tidier.
 
 That is the interesting result rather than a disappointing one. This model agrees
-with `snes_spc` across 15,360 samples and disagrees with the same author's
+with `snes_spc` across 23,040 samples and disagrees with the same author's
 hardware check, so the two are reaching different ground: either the corpus does
 not cover what the check covers, or something between them is at fault.
 
