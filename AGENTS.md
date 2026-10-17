@@ -133,6 +133,7 @@ conformance/
   hardware.json  what Nintendo printed, fact by fact, with the page
   divergences.json where sources part, and what would settle each
   quotes.py      looks for every quoted sentence in the document it cites
+  register_rig.py a part wired the way the register tests drive it
   speed.py       the throughput floor
   ref/           the reference driver, built rather than vendored
 ```

@@ -9,7 +9,7 @@
         "register": "VOL (L)",
         "functionQuote": "Left Channel Volume",
         "heldBy": [
-          "conformance/registers.test.py::VoiceRegisterTest.test_the_left_volume_reaches_its_own_channel_alone"
+          "conformance/voice_registers.test.py::VoiceRegisterTest.test_the_left_volume_reaches_its_own_channel_alone"
         ]
       },
       {
@@ -17,7 +17,7 @@
         "register": "VOL (R)",
         "functionQuote": "Right Channel Volume",
         "heldBy": [
-          "conformance/registers.test.py::VoiceRegisterTest.test_the_right_volume_reaches_its_own_channel_alone"
+          "conformance/voice_registers.test.py::VoiceRegisterTest.test_the_right_volume_reaches_its_own_channel_alone"
         ]
       },
       {
@@ -26,7 +26,7 @@
         "functionQuote": "The total 14 bits of P(H) and P(L) express Pitch Height",
         "assembled": true,
         "heldBy": [
-          "conformance/registers.test.py::VoiceRegisterTest.test_the_pitch_is_the_printed_number_of_bits_across_both_registers"
+          "conformance/voice_registers.test.py::VoiceRegisterTest.test_the_pitch_is_the_printed_number_of_bits_across_both_registers"
         ]
       },
       {
@@ -35,7 +35,7 @@
         "functionQuote": "The total 14 bits of P(H) and P(L) express Pitch Height",
         "assembled": true,
         "heldBy": [
-          "conformance/registers.test.py::VoiceRegisterTest.test_the_pitch_is_the_printed_number_of_bits_across_both_registers"
+          "conformance/voice_registers.test.py::VoiceRegisterTest.test_the_pitch_is_the_printed_number_of_bits_across_both_registers"
         ]
       },
       {
@@ -43,7 +43,7 @@
         "register": "SRCN",
         "functionQuote": "Designates source number from 0-255",
         "heldBy": [
-          "conformance/registers.test.py::VoiceRegisterTest.test_the_source_number_reaches_the_top_of_its_printed_range"
+          "conformance/voice_registers.test.py::VoiceRegisterTest.test_the_source_number_reaches_the_top_of_its_printed_range"
         ]
       },
       {
@@ -52,7 +52,7 @@
         "functionQuote": "Address is designated by D7=1 of ADSR(1); when D7=0, Gain is operative",
         "assembled": true,
         "heldBy": [
-          "conformance/registers.test.py::VoiceRegisterTest.test_the_mode_bit_hands_the_envelope_to_adsr_or_to_gain"
+          "conformance/voice_registers.test.py::VoiceRegisterTest.test_the_mode_bit_hands_the_envelope_to_adsr_or_to_gain"
         ]
       },
       {
@@ -61,7 +61,7 @@
         "functionQuote": "Address is designated by D7=1 of ADSR(1); when D7=0, Gain is operative",
         "assembled": true,
         "heldBy": [
-          "conformance/registers.test.py::VoiceRegisterTest.test_the_second_adsr_byte_counts_only_while_the_mode_bit_is_set"
+          "conformance/voice_registers.test.py::VoiceRegisterTest.test_the_second_adsr_byte_counts_only_while_the_mode_bit_is_set"
         ]
       },
       {
@@ -69,7 +69,7 @@
         "register": "GAIN",
         "functionQuote": "Envelope can be freely designated by the program",
         "heldBy": [
-          "conformance/registers.test.py::VoiceRegisterTest.test_the_program_designates_the_envelope_freely"
+          "conformance/voice_registers.test.py::VoiceRegisterTest.test_the_program_designates_the_envelope_freely"
         ]
       },
       {
@@ -77,7 +77,7 @@
         "register": "ENVX",
         "functionQuote": "Present value of envelope which DSP rewrites at each Ts",
         "heldBy": [
-          "conformance/registers.test.py::VoiceRegisterTest.test_the_envelope_register_is_rewritten_every_sample"
+          "conformance/voice_registers.test.py::VoiceRegisterTest.test_the_envelope_register_is_rewritten_every_sample"
         ]
       },
       {
@@ -85,7 +85,7 @@
         "register": "OUTX",
         "functionQuote": "Value after envelope multiplication & before VOL multiplication (present wave height value)",
         "heldBy": [
-          "conformance/registers.test.py::VoiceRegisterTest.test_the_output_register_follows_the_envelope_and_ignores_the_volume"
+          "conformance/voice_registers.test.py::VoiceRegisterTest.test_the_output_register_follows_the_envelope_and_ignores_the_volume"
         ]
       }
     ],
@@ -94,7 +94,7 @@
       "stride": 16,
       "voices": 8,
       "heldBy": [
-        "conformance/registers.test.py::VoiceRegisterTest.test_every_voice_answers_at_its_own_stride",
+        "conformance/voice_registers.test.py::VoiceRegisterTest.test_every_voice_answers_at_its_own_stride",
         "conformance/hardware.test.py::RegisterMapTest.test_the_voices_are_the_number_and_the_stride_the_manual_gives"
       ]
     },
@@ -104,7 +104,7 @@
         "register": "MVOL (L)",
         "functionQuote": "Main Volume (L)",
         "heldBy": [
-          "conformance/registers.test.py::GlobalRegisterTest.test_the_left_main_volume_reaches_its_own_channel_alone"
+          "conformance/global_registers.test.py::GlobalRegisterTest.test_the_left_main_volume_reaches_its_own_channel_alone"
         ]
       },
       {
@@ -112,7 +112,7 @@
         "register": "MVOL (R)",
         "functionQuote": "Main Volume (R)",
         "heldBy": [
-          "conformance/registers.test.py::GlobalRegisterTest.test_the_right_main_volume_reaches_its_own_channel_alone"
+          "conformance/global_registers.test.py::GlobalRegisterTest.test_the_right_main_volume_reaches_its_own_channel_alone"
         ]
       },
       {
@@ -120,7 +120,7 @@
         "register": "EVOL (L)",
         "functionQuote": "Echo Volume (L)",
         "heldBy": [
-          "conformance/registers.test.py::GlobalRegisterTest.test_the_left_echo_volume_reaches_its_own_channel_alone"
+          "conformance/echo_registers.test.py::EchoRegisterTest.test_the_left_echo_volume_reaches_its_own_channel_alone"
         ]
       },
       {
@@ -128,7 +128,7 @@
         "register": "EVOL (R)",
         "functionQuote": "Echo Volume (R)",
         "heldBy": [
-          "conformance/registers.test.py::GlobalRegisterTest.test_the_right_echo_volume_reaches_its_own_channel_alone"
+          "conformance/echo_registers.test.py::EchoRegisterTest.test_the_right_echo_volume_reaches_its_own_channel_alone"
         ]
       },
       {
@@ -136,7 +136,7 @@
         "register": "KON",
         "functionQuote": "Key On, D0-D7 correspond to Voice0-Voice7",
         "heldBy": [
-          "conformance/registers.test.py::GlobalRegisterTest.test_each_key_on_bit_keys_the_voice_printed_beside_it"
+          "conformance/global_registers.test.py::GlobalRegisterTest.test_each_key_on_bit_keys_the_voice_printed_beside_it"
         ]
       },
       {
@@ -144,7 +144,7 @@
         "register": "KOF",
         "functionQuote": "Key Off",
         "heldBy": [
-          "conformance/registers.test.py::GlobalRegisterTest.test_key_off_releases_a_sounding_voice_to_nothing"
+          "conformance/global_registers.test.py::GlobalRegisterTest.test_key_off_releases_a_sounding_voice_to_nothing"
         ]
       },
       {
@@ -152,7 +152,7 @@
         "register": "FLG",
         "functionQuote": "Designated on/off of reset, mute, echo, and noise clock",
         "heldBy": [
-          "conformance/registers.test.py::GlobalRegisterTest.test_the_flag_register_switches_reset_mute_echo_and_noise_clock"
+          "conformance/global_registers.test.py::GlobalRegisterTest.test_the_flag_register_switches_reset_mute_echo_and_noise_clock"
         ]
       },
       {
@@ -160,7 +160,7 @@
         "register": "ENDX",
         "functionQuote": "Indicates source end block",
         "heldBy": [
-          "conformance/registers.test.py::GlobalRegisterTest.test_the_end_flag_rises_once_the_source_passes_its_end_block"
+          "conformance/global_registers.test.py::GlobalRegisterTest.test_the_end_flag_rises_once_the_source_passes_its_end_block"
         ]
       },
       {
@@ -168,7 +168,7 @@
         "register": "EFB",
         "functionQuote": "Echo Feedback",
         "heldBy": [
-          "conformance/registers.test.py::GlobalRegisterTest.test_echo_feedback_returns_the_echo_into_the_buffer"
+          "conformance/echo_registers.test.py::EchoRegisterTest.test_echo_feedback_returns_the_echo_into_the_buffer"
         ]
       },
       {
@@ -176,7 +176,7 @@
         "register": "---",
         "functionQuote": "Not Used",
         "heldBy": [
-          "conformance/registers.test.py::GlobalRegisterTest.test_the_register_printed_as_not_used_changes_nothing"
+          "conformance/global_registers.test.py::GlobalRegisterTest.test_the_register_printed_as_not_used_changes_nothing"
         ]
       },
       {
@@ -184,7 +184,7 @@
         "register": "PMON",
         "functionQuote": "Pitch modulation of Voice i with OUTX of Voice (i-1) as modulated wave",
         "heldBy": [
-          "conformance/registers.test.py::GlobalRegisterTest.test_pitch_modulation_follows_the_output_of_the_voice_before"
+          "conformance/global_registers.test.py::GlobalRegisterTest.test_pitch_modulation_follows_the_output_of_the_voice_before"
         ]
       },
       {
@@ -192,7 +192,7 @@
         "register": "NON",
         "functionQuote": "Noise on/off, D0-D7 correspond to Voice0-Voice7",
         "heldBy": [
-          "conformance/registers.test.py::GlobalRegisterTest.test_each_noise_bit_turns_noise_on_for_the_voice_printed_beside_it"
+          "conformance/global_registers.test.py::GlobalRegisterTest.test_each_noise_bit_turns_noise_on_for_the_voice_printed_beside_it"
         ]
       },
       {
@@ -200,7 +200,7 @@
         "register": "EON",
         "functionQuote": "Echo On/Off",
         "heldBy": [
-          "conformance/registers.test.py::GlobalRegisterTest.test_echo_on_decides_whether_a_voice_reaches_the_echo_buffer"
+          "conformance/echo_registers.test.py::EchoRegisterTest.test_echo_on_decides_whether_a_voice_reaches_the_echo_buffer"
         ]
       },
       {
@@ -208,7 +208,7 @@
         "register": "DIR",
         "functionQuote": "Off-set address of source directory",
         "heldBy": [
-          "conformance/registers.test.py::GlobalRegisterTest.test_the_directory_is_read_from_the_page_the_offset_names"
+          "conformance/global_registers.test.py::GlobalRegisterTest.test_the_directory_is_read_from_the_page_the_offset_names"
         ]
       },
       {
@@ -216,7 +216,7 @@
         "register": "ESA",
         "functionQuote": "Off-set address of echo region, Echo Start Address",
         "heldBy": [
-          "conformance/registers.test.py::GlobalRegisterTest.test_the_echo_region_starts_at_the_page_the_offset_names"
+          "conformance/echo_registers.test.py::EchoRegisterTest.test_the_echo_region_starts_at_the_page_the_offset_names"
         ]
       },
       {
@@ -224,7 +224,7 @@
         "register": "EDL",
         "functionQuote": "Echo Delay. Only lower level 4 bits active.",
         "heldBy": [
-          "conformance/registers.test.py::GlobalRegisterTest.test_only_the_printed_low_bits_of_the_echo_delay_count"
+          "conformance/echo_registers.test.py::EchoRegisterTest.test_only_the_printed_low_bits_of_the_echo_delay_count"
         ]
       }
     ],
@@ -232,7 +232,7 @@
       "addresses": ["0F", "1F", "2F", "3F", "4F", "5F", "6F", "7F"],
       "quote": "Echo Filter coefficients. Makes up an 8 tap FIR Filter (Both Lch & Rch have the same filter)",
       "heldBy": [
-        "conformance/registers.test.py::GlobalRegisterTest.test_each_coefficient_is_a_tap_shared_by_both_channels",
+        "conformance/echo_registers.test.py::EchoRegisterTest.test_each_coefficient_is_a_tap_shared_by_both_channels",
         "conformance/hardware.test.py::RegisterMapTest.test_the_filter_is_eight_taps_starting_where_the_manual_says"
       ]
     },
@@ -240,7 +240,7 @@
       "registers": ["ENVX", "OUTX", "ENDX"],
       "quote": "Register written to by DSP during conditions of activity.",
       "heldBy": [
-        "conformance/registers.test.py::VoiceRegisterTest.test_the_part_writes_exactly_the_registers_printed_as_its_own"
+        "conformance/voice_registers.test.py::VoiceRegisterTest.test_the_part_writes_exactly_the_registers_printed_as_its_own"
       ]
     }
   },
@@ -253,8 +253,8 @@
       "bit": 7,
       "register": "ADSR (1)",
       "heldBy": [
-        "conformance/registers.test.py::VoiceRegisterTest.test_the_mode_bit_hands_the_envelope_to_adsr_or_to_gain",
-        "conformance/registers.test.py::VoiceRegisterTest.test_the_second_adsr_byte_counts_only_while_the_mode_bit_is_set"
+        "conformance/voice_registers.test.py::VoiceRegisterTest.test_the_mode_bit_hands_the_envelope_to_adsr_or_to_gain",
+        "conformance/voice_registers.test.py::VoiceRegisterTest.test_the_second_adsr_byte_counts_only_while_the_mode_bit_is_set"
       ]
     },
     "steps": {
