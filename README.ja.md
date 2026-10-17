@@ -1,8 +1,8 @@
-[English](README.md) | 日本語 | [简体中文](README.zh-Hans.md) | [繁體中文（香港）](README.zh-HK.md)
-
 # S-DSP
 
 Sony S-DSPサウンドジェネレータのPython実装です。実チップと同じ32クロックのスケジュールで動作し、NintendoのSNES Development Manualにあるレジスタマップとパラメータ表に照らして検証しています。
+
+[English](README.md) &nbsp;|&nbsp; 日本語 &nbsp;|&nbsp; [简体中文](README.zh-Hans.md) &nbsp;|&nbsp; [繁體中文（香港）](README.zh-HK.md)
 
 [![CI](https://github.com/gufranco/sony-s-dsp-python/actions/workflows/ci.yml/badge.svg)](https://github.com/gufranco/sony-s-dsp-python/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/gufranco/sony-s-dsp-python)](https://github.com/gufranco/sony-s-dsp-python/releases)
