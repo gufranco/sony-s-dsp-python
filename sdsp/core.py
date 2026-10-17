@@ -157,7 +157,6 @@ class Chip:
         self,
         memory: MemoryLike,
         seed: int = UNSET_SEED,
-        reset: bool = True,
         gaussian: Sequence[int] | None = None,
     ) -> None:
         self.memory = memory
@@ -166,8 +165,6 @@ class Chip:
         self.model = "s-dsp"
         self.gaussian = GAUSSIAN if gaussian is None else check_kernel(gaussian)
         self._clear_state()
-        if reset:
-            self.reset()
 
     def _clear_state(self) -> None:
         self.phase = 0

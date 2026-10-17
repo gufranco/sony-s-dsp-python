@@ -8,12 +8,12 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/sony-s-dsp-python)](https://github.com/gufranco/sony-s-dsp-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-來自真實音樂傾印的 **240** 個暫存器狀態重播 **23,040** 個樣本，與 `snes_spc 0.9.0` 相比 **0** 個失敗，在主機上取得的 **104** 項檢查中有 **97** 項一致，在手冊中找到 **28** 段引文，**764** 項測試，**100%** 語句和分支覆蓋率，沒有依賴項
+來自真實音樂傾印的 **240** 個暫存器狀態重播 **23,040** 個樣本，與 `snes_spc 0.9.0` 相比 **0** 個失敗，在主機上取得的 **104** 項檢查中有 **97** 項一致，在手冊中找到 **28** 段引文，**770** 項測試，**100%** 語句和分支覆蓋率，沒有依賴項
 
 ```python
 import sdsp
 
-dsp = sdsp.Chip("s-dsp", sdsp.Memory(fill=0))
+dsp = sdsp.Chip("s-dsp", sdsp.Memory(fill=0)).reset()
 
 for address, value in {0x0200: 0x00, 0x0201: 0x03, 0x0202: 0x00, 0x0203: 0x03}.items():
     dsp.memory.write8(address, value)
@@ -65,7 +65,7 @@ python3 sdsp/doctor.py
 
 ## 介面
 
-`sdsp.Chip(model, memory=None, seed=UNSET_SEED, reset=True, gaussian=None)` 建立一個晶片。`model` 為必填。`memory` 可以是任何具有 `read8(address)` 和 `write8(address, value)` 的物件，省略時晶片會建立一個 `SparseMemory`。`seed` 設定 128 個暫存器的開機圖樣。`reset=False` 保留該圖樣，而不是觸發一次重設線。`gaussian` 以你自己的表取代插值核，並由 `check_kernel` 檢查。
+`sdsp.Chip(model, memory=None, seed=UNSET_SEED, gaussian=None)` 建立一個晶片。`model` 為必填。`memory` 可以是任何具有 `read8(address)` 和 `write8(address, value)` 的物件，省略時晶片會建立一個 `SparseMemory`。`seed` 設定 128 個暫存器的開機圖樣，晶片會一直保持該圖樣，直至呼叫方呼叫 `reset()`。建構函式從不呼叫它，亦沒有任何選項令它呼叫。`gaussian` 以你自己的表取代插值核，並由 `check_kernel` 檢查。
 
 | 型號 | 別名 | 聲部 | 暫存器 |
 |:--|:--|:--|:--|
@@ -124,7 +124,7 @@ ym2612 is not a model this package covers; it has s-dsp
 ```python
 import sdsp
 
-dsp = sdsp.Chip("s-dsp", reset=False)
+dsp = sdsp.Chip("s-dsp")
 print(f"{dsp.read(0x6C):#04x} {dsp.read(0x7C):#04x} {dsp.read(0xEC):#04x}")
 print(dsp.reset() is dsp, f"{dsp.read(0x6C):#04x} {dsp.read(0x7C):#04x}")
 
@@ -235,7 +235,7 @@ import sdsp
 for clock in (0, 17, 22, 30):
     print(clock, sdsp.PIPELINE[clock])
 
-dsp = sdsp.Chip("s-dsp")
+dsp = sdsp.Chip("s-dsp").reset()
 dsp.run(40)
 print(dsp.phase, len(dsp.rendered))
 print(len(dsp.render(3)), dsp.phase)

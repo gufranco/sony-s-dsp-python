@@ -8,12 +8,12 @@ Sony S-DSPサウンドジェネレータのPython実装です。実チップと�
 [![Release](https://img.shields.io/github/v/release/gufranco/sony-s-dsp-python)](https://github.com/gufranco/sony-s-dsp-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-実際の音楽ダンプから取った**240**個のレジスタ状態を**23,040**サンプル分再生し、`snes_spc 0.9.0`に対する不一致は**0**件、コンソール上で取得したチェック**104**件のうち**97**件が一致、マニュアル内で所在を確認した引用が**28**件、テストが**764**件、ステートメントとブランチのカバレッジが**100%**、依存関係はありません。
+実際の音楽ダンプから取った**240**個のレジスタ状態を**23,040**サンプル分再生し、`snes_spc 0.9.0`に対する不一致は**0**件、コンソール上で取得したチェック**104**件のうち**97**件が一致、マニュアル内で所在を確認した引用が**28**件、テストが**770**件、ステートメントとブランチのカバレッジが**100%**、依存関係はありません。
 
 ```python
 import sdsp
 
-dsp = sdsp.Chip("s-dsp", sdsp.Memory(fill=0))
+dsp = sdsp.Chip("s-dsp", sdsp.Memory(fill=0)).reset()
 
 for address, value in {0x0200: 0x00, 0x0201: 0x03, 0x0202: 0x00, 0x0203: 0x03}.items():
     dsp.memory.write8(address, value)
@@ -65,7 +65,7 @@ python3 sdsp/doctor.py
 
 ## インターフェース
 
-`sdsp.Chip(model, memory=None, seed=UNSET_SEED, reset=True, gaussian=None)`はチップを1つ構築します。`model`は必須です。`memory`は`read8(address)`と`write8(address, value)`を持つ任意のオブジェクトで、省略するとチップが`SparseMemory`を構築します。`seed`は128個のレジスタの電源投入時のパターンを設定します。`reset=False`にすると、リセットラインを一度パルスさせずにそのパターンをそのまま残します。`gaussian`は補間カーネルを独自のテーブルに置き換え、そのテーブルは`check_kernel`で検査されます。
+`sdsp.Chip(model, memory=None, seed=UNSET_SEED, gaussian=None)`はチップを1つ構築します。`model`は必須です。`memory`は`read8(address)`と`write8(address, value)`を持つ任意のオブジェクトで、省略するとチップが`SparseMemory`を構築します。`seed`は128個のレジスタの電源投入時のパターンを設定し、チップは呼び出し側が`reset()`を呼ぶまでそのパターンを保持します。コンストラクタが`reset()`を呼ぶことはなく、呼ばせるオプションもありません。`gaussian`は補間カーネルを独自のテーブルに置き換え、そのテーブルは`check_kernel`で検査されます。
 
 | モデル | 別名 | ボイス数 | レジスタ数 |
 |:--|:--|:--|:--|
@@ -124,7 +124,7 @@ ym2612 is not a model this package covers; it has s-dsp
 ```python
 import sdsp
 
-dsp = sdsp.Chip("s-dsp", reset=False)
+dsp = sdsp.Chip("s-dsp")
 print(f"{dsp.read(0x6C):#04x} {dsp.read(0x7C):#04x} {dsp.read(0xEC):#04x}")
 print(dsp.reset() is dsp, f"{dsp.read(0x6C):#04x} {dsp.read(0x7C):#04x}")
 
@@ -235,7 +235,7 @@ import sdsp
 for clock in (0, 17, 22, 30):
     print(clock, sdsp.PIPELINE[clock])
 
-dsp = sdsp.Chip("s-dsp")
+dsp = sdsp.Chip("s-dsp").reset()
 dsp.run(40)
 print(dsp.phase, len(dsp.rendered))
 print(len(dsp.render(3)), dsp.phase)

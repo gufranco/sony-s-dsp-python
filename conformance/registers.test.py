@@ -79,7 +79,7 @@ def a_memory(fill: int = 0) -> Memory:
 
 
 def a_part(memory: Memory | None = None) -> core.Chip:
-    chip = core.Chip(a_memory() if memory is None else memory)
+    chip = core.Chip(a_memory() if memory is None else memory).reset()
     chip.write(core.REG_DIR, DIRECTORY)
     chip.write(core.REG_MVOLL, LOUD)
     chip.write(core.REG_MVOLL + 0x10, LOUD)
@@ -133,7 +133,7 @@ def moved(chip: core.Chip, clocks: int) -> set[int]:
 
 def echoing(fill: int = 0x24) -> tuple[core.Chip, Memory]:
     memory = Memory(fill=fill)
-    chip = core.Chip(memory)
+    chip = core.Chip(memory).reset()
     chip.write(core.REG_FLG, core.FLG_ECHO_OFF)
     chip.write(core.REG_EVOLL, LOUD)
     chip.write(core.REG_EVOLL + 0x10, LOUD)

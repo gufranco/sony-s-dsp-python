@@ -49,9 +49,36 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(sdsp.Chip("s-dsp", memory=Memory(fill=0)).model, "s-dsp")
 
     def test_options_reach_the_chip_that_gets_built(self) -> None:
-        built = sdsp.Chip("s-dsp", Memory(fill=0), reset=False)
+        # Arrange
+        seed = 0x1234
 
-        self.assertEqual(len(built.registers), 128)
+        # Act
+        built = sdsp.Chip("s-dsp", Memory(fill=0), seed=seed)
+
+        # Assert
+        self.assertEqual(built.registers, sdsp.scramble(128, seed))
+
+    def test_a_chip_built_by_name_arrives_unreset(self) -> None:
+        # Arrange
+        memory = Memory(fill=0)
+
+        # Act
+        built = sdsp.Chip("s-dsp", memory)
+
+        # Assert
+        self.assertEqual(built.registers, sdsp.scramble(128))
+
+    def test_and_no_option_asks_for_it_to_arrive_reset(self) -> None:
+        # Arrange
+        memory = Memory(fill=0)
+
+        # Act
+        refused = self.assertRaises(TypeError)
+        with refused:
+            sdsp.Chip("s-dsp", memory, reset=True)
+
+        # Assert
+        self.assertIn("reset", str(refused.exception))
 
     def test_a_model_the_package_does_not_have_is_refused_at_construction(self) -> None:
         with self.assertRaises(errors.UnknownModelError):

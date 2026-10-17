@@ -111,6 +111,7 @@ class ExamineTest(unittest.TestCase):
         self.assertIn("resets to flags $E0", found[0].detail)
 
     def test_a_part_that_builds_and_will_not_reset_is_reported_as_broken(self) -> None:
+        # Arrange
         class WillNotReset(core.Chip):
             @override
             def reset(self) -> Any:
@@ -119,9 +120,30 @@ class ExamineTest(unittest.TestCase):
         def build(_name: str) -> Any:
             return WillNotReset(memory.Memory())
 
+        # Act
         found = [one for one in doctor.examine(build=build) if one.name == "s-dsp"]
 
-        self.assertFalse(found[0].ok)
+        # Assert
+        self.assertEqual((found[0].ok, found[0].detail), (False, "Complaint: the pin did nothing"))
+
+    def test_the_doctor_resets_the_part_itself_rather_than_trusting_the_build(self) -> None:
+        # Arrange
+        resets: list[str] = []
+
+        class Counted(core.Chip):
+            @override
+            def reset(self) -> Any:
+                resets.append("reset")
+                return super().reset()
+
+        def build(_name: str) -> Any:
+            return Counted(memory.Memory())
+
+        # Act
+        found = [one for one in doctor.examine(build=build) if one.name == "s-dsp"]
+
+        # Assert
+        self.assertEqual((found[0].ok, resets), (True, ["reset"]))
 
 
 class MemoryTest(unittest.TestCase):

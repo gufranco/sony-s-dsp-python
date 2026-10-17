@@ -59,7 +59,7 @@ def ram_for(case: Mapping[str, Any]) -> Any:
 
 def render(case: Mapping[str, Any]) -> list[int]:
     registers = case["registers"]
-    dsp = Chip(Memory(fill=ram_for(case)))
+    dsp = Chip(Memory(fill=ram_for(case))).reset()
     for address in range(REGISTER_COUNT):
         if address not in (REG_KON, REG_KOFF):
             dsp.write(address, registers[address])

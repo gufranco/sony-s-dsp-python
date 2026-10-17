@@ -8,11 +8,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sdsp import core, tables
 from sdsp.errors import NotAKernel
-from sdsp.memory import Memory
+from sdsp.memory import Memory, scramble
 
 
 def a_machine(fill: int = 0) -> Any:
-    return core.Chip(Memory(fill=fill))
+    return core.Chip(Memory(fill=fill)).reset()
 
 
 def a_voice_ram(
@@ -35,7 +35,7 @@ def a_voice_ram(
 
 
 def keyed_on(memory: Any, directory: int = 0x02) -> Any:
-    dsp = core.Chip(memory)
+    dsp = core.Chip(memory).reset()
     dsp.write(core.REG_DIR, directory)
     dsp.write(core.REG_MVOLL, 0x7F)
     dsp.write(core.REG_MVOLL + 0x10, 0x7F)
@@ -59,9 +59,46 @@ class ResetTest(unittest.TestCase):
         self.assertTrue(all(v.envelope_mode == core.ENV_RELEASE for v in dsp.voices))
 
     def test_registers_are_not_assumed_clear_before_a_reset(self) -> None:
-        dsp = core.Chip(Memory(fill=0), reset=False)
+        # Arrange
+        memory = Memory(fill=0)
 
+        # Act
+        dsp = core.Chip(memory)
+
+        # Assert
         self.assertNotEqual(bytes(dsp.registers), bytes(core.REGISTER_COUNT))
+
+    def test_a_built_part_holds_the_power_on_pattern_and_nothing_a_reset_sets(self) -> None:
+        # Arrange
+        seed = 0x1234
+
+        # Act
+        dsp = core.Chip(Memory(fill=0), seed=seed)
+
+        # Assert
+        self.assertEqual(dsp.registers, scramble(core.REGISTER_COUNT, seed))
+
+    def test_the_constructor_offers_no_way_to_arrive_reset(self) -> None:
+        # Arrange
+        memory = Memory(fill=0)
+
+        # Act
+        refused = self.assertRaises(TypeError)
+        with refused:
+            core.Chip(memory, reset=True)  # type: ignore[call-arg]
+
+        # Assert
+        self.assertIn("reset", str(refused.exception))
+
+    def test_only_a_call_to_reset_sets_what_a_reset_defines(self) -> None:
+        # Arrange
+        dsp = core.Chip(Memory(fill=0), seed=0x1234)
+
+        # Act
+        dsp.reset()
+
+        # Assert
+        self.assertEqual(dsp.read(core.REG_FLG), 0xE0)
 
     def test_there_are_eight_voices(self) -> None:
         self.assertEqual(len(a_machine().voices), core.VOICE_COUNT)

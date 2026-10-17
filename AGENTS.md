@@ -23,7 +23,9 @@ The part answers accesses. Nothing a host does to it is measured in cycles, so
 none of the family's clocked interface appears here. The thirty two steps are the
 part's own schedule rather than a caller's budget.
 
-`Chip(model, memory)` builds one, the shape every part in the family takes.
+`Chip(model, memory)` builds one, the shape every part in the family takes. It
+arrives holding the power-on pattern. The caller calls `reset()` where the board
+would pulse the line, and the constructor never does.
 
 | Call | What it does |
 |:--|:--|
@@ -152,7 +154,8 @@ conformance/
   alternating rounds, inside a run-to-run spread of about 2%.
 - **The part comes up scrambled.** Registers hold a pattern derived from a seed,
   not zero, because no machine hands over cleared registers. `reset()` is a
-  separate event and does a different thing.
+  separate event and does a different thing, and nothing calls it for you: a
+  test, a runner or an example that wants the defined state calls it itself.
 - **The corpus is the only source for the audio.** A change that alters output
   and still passes the unit tests has not been checked at all until the corpus
   runs.

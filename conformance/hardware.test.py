@@ -81,7 +81,7 @@ def _fraction(text: str) -> Fraction:
 
 
 def _keyed(adsr: int, gain: int) -> core.Chip:
-    chip = core.Chip(Memory(fill=0))
+    chip = core.Chip(Memory(fill=0)).reset()
     chip.write(core.REG_FLG, core.FLG_ECHO_OFF)
     chip.write(core.V_ADSR0, adsr)
     chip.write(core.V_ADSR1, 0)

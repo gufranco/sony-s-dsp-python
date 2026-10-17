@@ -8,12 +8,12 @@ English | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md) | [繁�
 [![Release](https://img.shields.io/github/v/release/gufranco/sony-s-dsp-python)](https://github.com/gufranco/sony-s-dsp-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**240** register states from real music dumps replayed for **23,040** samples, **0** failures against `snes_spc 0.9.0`, **97** of **104** checks taken on a console agree, **28** quotes located in the manual, **764** tests, **100%** statement and branch coverage, no dependencies
+**240** register states from real music dumps replayed for **23,040** samples, **0** failures against `snes_spc 0.9.0`, **97** of **104** checks taken on a console agree, **28** quotes located in the manual, **770** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 import sdsp
 
-dsp = sdsp.Chip("s-dsp", sdsp.Memory(fill=0))
+dsp = sdsp.Chip("s-dsp", sdsp.Memory(fill=0)).reset()
 
 for address, value in {0x0200: 0x00, 0x0201: 0x03, 0x0202: 0x00, 0x0203: 0x03}.items():
     dsp.memory.write8(address, value)
@@ -65,7 +65,7 @@ Releases follow [Semantic Versioning](https://semver.org/) and are cut from the 
 
 ## The interface
 
-`sdsp.Chip(model, memory=None, seed=UNSET_SEED, reset=True, gaussian=None)` builds one part. `model` is required. `memory` is any object with `read8(address)` and `write8(address, value)`, and the part builds a `SparseMemory` when it is left out. `seed` sets the power-on pattern of the 128 registers. `reset=False` leaves that pattern in place instead of pulsing the reset line once. `gaussian` replaces the interpolation kernel with a table of your own, checked by `check_kernel`.
+`sdsp.Chip(model, memory=None, seed=UNSET_SEED, gaussian=None)` builds one part. `model` is required. `memory` is any object with `read8(address)` and `write8(address, value)`, and the part builds a `SparseMemory` when it is left out. `seed` sets the power-on pattern of the 128 registers, which the part holds until the caller calls `reset()`. The constructor never calls it, and no option makes it. `gaussian` replaces the interpolation kernel with a table of your own, checked by `check_kernel`.
 
 | Model | Aliases | Voices | Registers |
 |:--|:--|:--|:--|
@@ -124,7 +124,7 @@ ym2612 is not a model this package covers; it has s-dsp
 ```python
 import sdsp
 
-dsp = sdsp.Chip("s-dsp", reset=False)
+dsp = sdsp.Chip("s-dsp")
 print(f"{dsp.read(0x6C):#04x} {dsp.read(0x7C):#04x} {dsp.read(0xEC):#04x}")
 print(dsp.reset() is dsp, f"{dsp.read(0x6C):#04x} {dsp.read(0x7C):#04x}")
 
@@ -235,7 +235,7 @@ import sdsp
 for clock in (0, 17, 22, 30):
     print(clock, sdsp.PIPELINE[clock])
 
-dsp = sdsp.Chip("s-dsp")
+dsp = sdsp.Chip("s-dsp").reset()
 dsp.run(40)
 print(dsp.phase, len(dsp.rendered))
 print(len(dsp.render(3)), dsp.phase)
