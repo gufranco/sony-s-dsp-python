@@ -20,7 +20,7 @@ from conformance.register_rig import (
     quoted,
     register_map,
 )
-from sdsp import core
+from sdsp import core, echo, state
 from sdsp.memory import Memory
 
 MAP = register_map()
@@ -29,11 +29,11 @@ MAP = register_map()
 def echoing(fill: int = 0x24) -> tuple[core.Chip, Memory]:
     memory = Memory(fill=fill)
     chip = core.Chip(memory).reset()
-    chip.write(core.REG_FLG, core.FLG_ECHO_OFF)
-    chip.write(core.REG_EVOLL, LOUD)
-    chip.write(core.REG_EVOLL + 0x10, LOUD)
-    chip.write(core.REG_ESA, ECHO)
-    chip.write(core.REG_EDL, 1)
+    chip.write(state.REG_FLG, echo.FLG_ECHO_OFF)
+    chip.write(echo.REG_EVOLL, LOUD)
+    chip.write(echo.REG_EVOLL + 0x10, LOUD)
+    chip.write(echo.REG_ESA, ECHO)
+    chip.write(echo.REG_EDL, 1)
     return chip, memory
 
 
@@ -47,7 +47,7 @@ def an_echo_volume_silences(address: int, quote: str) -> list[bool]:
 def fed_back(address: int, value: int) -> bytes:
     chip, memory = echoing()
     chip.write(NEWEST_TAP, LOUD)
-    chip.write(core.REG_FLG, 0)
+    chip.write(state.REG_FLG, 0)
     chip.write(address, value)
     chip.render(4)
     return bytes(memory.data[ECHO * 0x100 + 4 : ECHO * 0x100 + 16])
@@ -56,9 +56,9 @@ def fed_back(address: int, value: int) -> bytes:
 def echo_reached(address: int, value: int) -> bool:
     memory = a_memory()
     chip = keyed(a_part(memory))
-    chip.write(core.REG_ESA, ECHO)
-    chip.write(core.REG_EDL, 1)
-    chip.write(core.REG_FLG, 0)
+    chip.write(echo.REG_ESA, ECHO)
+    chip.write(echo.REG_EDL, 1)
+    chip.write(state.REG_FLG, 0)
     chip.write(address, value)
     chip.render(64)
     return any(memory.data[ECHO * 0x100 : ECHO * 0x100 + ECHO_SPAN])
@@ -66,7 +66,7 @@ def echo_reached(address: int, value: int) -> bool:
 
 def echo_lands(address: int, page: int) -> int:
     chip, memory = echoing(UNTOUCHED)
-    chip.write(core.REG_FLG, 0)
+    chip.write(state.REG_FLG, 0)
     chip.write(address, page)
     chip.render(4)
     return max(at for at, value in enumerate(memory.data) if value != UNTOUCHED) >> 8
@@ -74,7 +74,7 @@ def echo_lands(address: int, page: int) -> int:
 
 def echo_written(address: int, value: int) -> int:
     chip, memory = echoing(UNTOUCHED)
-    chip.write(core.REG_FLG, 0)
+    chip.write(state.REG_FLG, 0)
     chip.write(address, value)
     chip.render(600)
     return sum(1 for byte in memory.data if byte != UNTOUCHED)

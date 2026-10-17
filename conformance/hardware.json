@@ -703,7 +703,8 @@
     "The sample rate. 32 kHz falls out of the noise clock table's top row rather than being printed as a figure.",
     "Anything about cycles. The manual describes the DSP in terms of times and frequencies, so nothing here can settle when within a sample period a register is read.",
     "The gaussian interpolation kernel. The manual describes pitch as a 14 bit value and never gives the filter that resamples. It is on the die and has never been dumped as a file, so unlike every image this family loads there is no canonical artifact to hash and no digest here to confirm a copy against. A caller may supply their own through Chip(gaussian=...); check_kernel in sdsp/tables.py holds it to the length, the shape and the identity that the four taps of every position sum to 2048, which is weaker than a digest because two different tables can pass it.",
-    "What a register holds at power on."
+    "What a register, a counter, a latch or the noise generator holds at power on. The model scrambles all of them from a seed; see powerOn.",
+    "What a reset leaves anywhere but the flag register. The model follows the implementation the corpus was recorded from; see resetLine."
   ],
   "documents": {
     "developmentManual": {
@@ -732,9 +733,70 @@
     }
   },
   "resetLine": {
-    "value": "every register cleared, the flag register set to its reset value, every voice released",
+    "value": "every register cleared and the flag register set to E0; every voice released, its envelope, decoded samples and position cleared and its block offset set to the first pair; the noise generator set to 4000; the rate counter, the clock phase and the echo position set to 0; the every-other-sample toggle set to 1; every latch the schedule carries between clocks cleared",
     "verified": false,
-    "evidence": "The manual names the reset bit of the flag register and does not tabulate what a reset leaves in each register. What this model does is what the corpus implies and what a second implementation does, which is a rung below a printed table and is recorded as such.",
-    "howToSettleIt": "A capture of the register file on a real audio unit immediately after reset."
+    "source": "snes9x 1.63 apu/bapu/dsp/SPC_DSP.cpp: SPC_DSP::load, which clears the register file and everything after it in the state block, sets FLG to E0 and every voice's block offset to 1, and SPC_DSP::soft_reset_common, which sets the noise to 4000, the toggle to 1 and the echo position, phase and counter to 0. SPC_DSP::read answers from a second copy of the registers, which load fills from a fixed table, initial_regs, rather than clearing; this model does not follow that table, because nothing in that source says where it came from. That is the implementation the corpus was recorded from, so this is rung four of the ladder, not a measurement.",
+    "evidence": "The manual names the reset bit of the flag register and does not tabulate what a reset leaves in each register or in any latch. What this model does is what that implementation does, field for field, and the corpus agrees only while it does: a reset that set the registers and released the voices but left the rest of the state as power on left it was run against the corpus on 2026-10-17 and agreed on 2 of the 240 cases.",
+    "sets": {
+      "registers": "00",
+      "FLG": "E0",
+      "chip": {
+        "phase": "0",
+        "counter": "0",
+        "noise": "4000",
+        "every_other_sample": "1",
+        "kon": "0",
+        "new_kon": "0",
+        "kon_check": "0",
+        "echo_offset": "0",
+        "echo_length": "0",
+        "echo_history": "0",
+        "echo_history_position": "0",
+        "main_out": "0",
+        "echo_out": "0",
+        "echo_in": "0",
+        "echo_pointer": "0",
+        "echo_enabled": "0",
+        "t_pmon": "0",
+        "t_non": "0",
+        "t_eon": "0",
+        "t_dir": "0",
+        "t_koff": "0",
+        "t_esa": "0",
+        "t_srcn": "0",
+        "t_dir_address": "0",
+        "t_brr_next_address": "0",
+        "t_adsr0": "0",
+        "t_pitch": "0",
+        "t_brr_byte": "0",
+        "t_brr_header": "0",
+        "t_output": "0",
+        "t_looped": "0",
+        "endx_buffer": "0",
+        "outx_buffer": "0",
+        "envx_buffer": "0"
+      },
+      "voice": {
+        "buffer": "0",
+        "buffer_position": "0",
+        "interpolation": "0",
+        "brr_address": "0",
+        "brr_offset": "1",
+        "key_on_delay": "0",
+        "envelope_mode": "0",
+        "envelope": "0",
+        "hidden_envelope": "0",
+        "envelope_out": "0"
+      }
+    },
+    "howToSettleIt": "A capture of the register file on a real audio unit immediately after reset, and of the noise output of a voice keyed with NON set and the noise clock running, which shows where the generator starts."
+  },
+  "powerOn": {
+    "value": "every register, counter, latch, decoded sample and position scrambled from the seed; nothing cleared and none of it copied from what a reset sets",
+    "verified": false,
+    "evidence": "No document states what the part holds when the rail comes up and no capture of one is known, so nothing is kept fixed. Each field is drawn across the values the model's own logic gives it: the decode position on a group of four, the block offset on a pair inside the block, the key-on delay at most five, the noise generator inside its fifteen bits.",
+    "noiseNeverHolds": "0000",
+    "noiseNeverHoldsWhy": "Zero is the one value the noise generator cannot leave: both of its feedback taps read zero, so it shifts in zero for ever. Every other fifteen bit value lies on one cycle of 32,767 steps, which sdsp/state.test.py walks. A generator scrambled to zero would stay silent until a reset, so the scramble draws from the other 32,767.",
+    "howToSettleIt": "A capture of the register file, and of the output of a voice keyed with noise on, on a real audio unit before anything is written to it, repeated across power cycles and across parts."
   }
 }

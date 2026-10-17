@@ -24,8 +24,9 @@ from conformance.register_rig import (
     side_of,
     silent,
 )
-from sdsp import core
+from sdsp import core, state
 from sdsp.memory import Memory
+from sdsp.voice import Voice
 
 
 class RecordTest(unittest.TestCase):
@@ -116,7 +117,7 @@ class PartTest(unittest.TestCase):
         chip = a_part(memory)
 
         # Assert
-        self.assertEqual((chip.read(core.REG_FLG), chip.read(core.REG_DIR)), (0x20, DIRECTORY))
+        self.assertEqual((chip.read(state.REG_FLG), chip.read(core.REG_DIR)), (0x20, DIRECTORY))
 
     def test_keying_arms_only_the_voices_named(self) -> None:
         # Arrange
@@ -130,7 +131,7 @@ class PartTest(unittest.TestCase):
 
     def test_a_voice_one_block_and_two_pairs_in_has_consumed_twenty_samples(self) -> None:
         # Arrange
-        voice = core.Voice(0)
+        voice = Voice(0)
         voice.brr_address = SOURCE + core.BRR_BLOCK_BYTES
         voice.brr_offset = 3
 

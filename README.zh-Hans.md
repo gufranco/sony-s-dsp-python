@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/sony-s-dsp-python)](https://github.com/gufranco/sony-s-dsp-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-来自真实音乐转储的 **240** 个寄存器状态重放 **23,040** 个采样，与 `snes_spc 0.9.0` 对比 **0** 处不一致，在主机上取得的 **104** 项检查中 **97** 项一致，在手册中定位到 **28** 处引文，**786** 个测试，**100%** 语句与分支覆盖率，无依赖
+来自真实音乐转储的 **240** 个寄存器状态重放 **23,040** 个采样，与 `snes_spc 0.9.0` 对比 **0** 处不一致，在主机上取得的 **104** 项检查中 **97** 项一致，在手册中定位到 **28** 处引文，**814** 个测试，**100%** 语句与分支覆盖率，无依赖
 
 ```python
 import sdsp
@@ -65,7 +65,7 @@ python3 sdsp/doctor.py
 
 ## 接口
 
-`sdsp.Chip(model, memory=None, seed=UNSET_SEED, gaussian=None)` 构建一个芯片。`model` 为必填。`memory` 可以是任何具有 `read8(address)` 和 `write8(address, value)` 的对象，省略时芯片会构建一个 `SparseMemory`。`seed` 设定 128 个寄存器的上电图案，芯片会一直保持该图案，直到调用方调用 `reset()`。构造函数从不调用它，也没有任何选项让它调用。`gaussian` 用你自己的表替换插值核，并由 `check_kernel` 检查。
+`sdsp.Chip(model, memory=None, seed=UNSET_SEED, gaussian=None)` 构建一个芯片。`model` 为必填。`memory` 可以是任何具有 `read8(address)` 和 `write8(address, value)` 的对象，省略时芯片会构建一个 `SparseMemory`。`seed` 设定每个寄存器、计数器、锁存器、已解码样本和位置的上电图案，芯片会一直保持该图案，直到调用方调用 `reset()`。噪声发生器永远不会取到 0，这是其反馈无法离开的唯一值。构造函数从不调用 `reset()`，也没有任何选项让它调用。`gaussian` 用你自己的表替换插值核，并由 `check_kernel` 检查。
 
 | 型号 | 别名 | 声部 | 寄存器 |
 |:--|:--|:--|:--|
@@ -79,7 +79,7 @@ python3 sdsp/doctor.py
 |:--|:--|
 | `read(address)` | 返回 `address & $7F` 处的寄存器 |
 | `write(address, value)` | 把 `value & $FF` 存入 `address & $7F`。写入 KON 的值会被锁存，等待下一个 KON 采样。写入 ENDX 会将其清零 |
-| `reset()` | 复位线的作用：清除流水线状态和所有寄存器，把 `FLG` 设为 `$E0`，并让全部八个声部静音。返回该芯片 |
+| `reset()` | 复位线在录制语料库所用的实现 `snes_spc` 中的作用：清除所有寄存器和所有锁存器，把 `FLG` 设为 `$E0`、噪声发生器设为 `$4000`、隔样本切换位设为 1，并让全部八个声部静音。返回该芯片 |
 | `clock()` | 运行 `PIPELINE` 为当前时钟指定的步骤，并移到 32 个时钟中的下一个 |
 | `run(clocks)` | 执行该次数的 `clock()` |
 | `render(samples)` | 运行 `samples` 乘以 32 个时钟，并以左右值交错的形式返回输出，每个采样两个值 |

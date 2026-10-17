@@ -8,7 +8,7 @@ English | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md) | [繁�
 [![Release](https://img.shields.io/github/v/release/gufranco/sony-s-dsp-python)](https://github.com/gufranco/sony-s-dsp-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**240** register states from real music dumps replayed for **23,040** samples, **0** failures against `snes_spc 0.9.0`, **97** of **104** checks taken on a console agree, **28** quotes located in the manual, **786** tests, **100%** statement and branch coverage, no dependencies
+**240** register states from real music dumps replayed for **23,040** samples, **0** failures against `snes_spc 0.9.0`, **97** of **104** checks taken on a console agree, **28** quotes located in the manual, **814** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 import sdsp
@@ -65,7 +65,7 @@ Releases follow [Semantic Versioning](https://semver.org/) and are cut from the 
 
 ## The interface
 
-`sdsp.Chip(model, memory=None, seed=UNSET_SEED, gaussian=None)` builds one part. `model` is required. `memory` is any object with `read8(address)` and `write8(address, value)`, and the part builds a `SparseMemory` when it is left out. `seed` sets the power-on pattern of the 128 registers, which the part holds until the caller calls `reset()`. The constructor never calls it, and no option makes it. `gaussian` replaces the interpolation kernel with a table of your own, checked by `check_kernel`.
+`sdsp.Chip(model, memory=None, seed=UNSET_SEED, gaussian=None)` builds one part. `model` is required. `memory` is any object with `read8(address)` and `write8(address, value)`, and the part builds a `SparseMemory` when it is left out. `seed` sets the power-on pattern of every register, counter, latch, decoded sample and position, which the part holds until the caller calls `reset()`. The noise generator is never drawn as 0, the one value its feedback cannot leave. The constructor never calls `reset()`, and no option makes it. `gaussian` replaces the interpolation kernel with a table of your own, checked by `check_kernel`.
 
 | Model | Aliases | Voices | Registers |
 |:--|:--|:--|:--|
@@ -79,7 +79,7 @@ A name is matched with case, hyphens and underscores ignored, so `SNES-DSP` buil
 |:--|:--|
 | `read(address)` | Returns the register at `address & $7F` |
 | `write(address, value)` | Stores `value & $FF` at `address & $7F`. A write to KON is latched for the next KON sample. A write to ENDX clears it to 0 |
-| `reset()` | What the reset line does: clears the pipeline state and every register, sets `FLG` to `$E0`, and silences all eight voices. Returns the part |
+| `reset()` | What the reset line does in `snes_spc`, the implementation the corpus was recorded from: clears every register and every latch, sets `FLG` to `$E0`, the noise generator to `$4000` and the every-other-sample toggle to 1, and silences all eight voices. Returns the part |
 | `clock()` | Runs the steps `PIPELINE` names for the current clock and moves to the next of the 32 |
 | `run(clocks)` | `clock()` that many times |
 | `render(samples)` | Runs `samples` times 32 clocks and returns the output as left and right values interleaved, two per sample |

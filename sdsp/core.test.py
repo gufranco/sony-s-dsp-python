@@ -6,7 +6,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from sdsp import core, tables
+from sdsp import core, echo, state, tables, voice
 from sdsp.errors import NotAKernel
 from sdsp.memory import Memory, scramble
 
@@ -37,26 +37,38 @@ def a_voice_ram(
 def keyed_on(memory: Any, directory: int = 0x02) -> Any:
     dsp = core.Chip(memory).reset()
     dsp.write(core.REG_DIR, directory)
-    dsp.write(core.REG_MVOLL, 0x7F)
-    dsp.write(core.REG_MVOLL + 0x10, 0x7F)
+    dsp.write(echo.REG_MVOLL, 0x7F)
+    dsp.write(echo.REG_MVOLL + 0x10, 0x7F)
     dsp.write(core.V_VOLL, 0x7F)
     dsp.write(core.V_VOLL + 1, 0x7F)
     dsp.write(core.V_PITCHL, 0x00)
     dsp.write(core.V_PITCHH, 0x10)
     dsp.write(core.V_GAIN, 0x7F)
-    dsp.write(core.REG_FLG, 0x20)
+    dsp.write(state.REG_FLG, 0x20)
     dsp.write(core.REG_KON, 0x01)
     return dsp
 
 
 class ResetTest(unittest.TestCase):
     def test_a_reset_leaves_the_flag_register_where_hardware_leaves_it(self) -> None:
-        self.assertEqual(a_machine().registers[core.REG_FLG], 0xE0)
+        # Arrange
+        dsp = core.Chip(Memory(fill=0))
+
+        # Act
+        dsp.reset()
+
+        # Assert
+        self.assertEqual(dsp.registers[state.REG_FLG], 0xE0)
 
     def test_a_reset_releases_every_voice(self) -> None:
-        dsp = a_machine()
+        # Arrange
+        dsp = core.Chip(Memory(fill=0))
 
-        self.assertTrue(all(v.envelope_mode == core.ENV_RELEASE for v in dsp.voices))
+        # Act
+        dsp.reset()
+
+        # Assert
+        self.assertEqual({v.envelope_mode for v in dsp.voices}, {voice.ENV_RELEASE})
 
     def test_registers_are_not_assumed_clear_before_a_reset(self) -> None:
         # Arrange
@@ -66,7 +78,7 @@ class ResetTest(unittest.TestCase):
         dsp = core.Chip(memory)
 
         # Assert
-        self.assertNotEqual(bytes(dsp.registers), bytes(core.REGISTER_COUNT))
+        self.assertNotEqual(bytes(dsp.registers), bytes(state.REGISTER_COUNT))
 
     def test_a_built_part_holds_the_power_on_pattern_and_nothing_a_reset_sets(self) -> None:
         # Arrange
@@ -76,7 +88,7 @@ class ResetTest(unittest.TestCase):
         dsp = core.Chip(Memory(fill=0), seed=seed)
 
         # Assert
-        self.assertEqual(dsp.registers, scramble(core.REGISTER_COUNT, seed))
+        self.assertEqual(dsp.registers, scramble(state.REGISTER_COUNT, seed))
 
     def test_the_constructor_offers_no_way_to_arrive_reset(self) -> None:
         # Arrange
@@ -98,10 +110,17 @@ class ResetTest(unittest.TestCase):
         dsp.reset()
 
         # Assert
-        self.assertEqual(dsp.read(core.REG_FLG), 0xE0)
+        self.assertEqual(dsp.read(state.REG_FLG), 0xE0)
 
     def test_there_are_eight_voices(self) -> None:
-        self.assertEqual(len(a_machine().voices), core.VOICE_COUNT)
+        # Arrange
+        memory = Memory(fill=0)
+
+        # Act
+        dsp = core.Chip(memory)
+
+        # Assert
+        self.assertEqual(len(dsp.voices), state.VOICE_COUNT)
 
     def test_each_voice_knows_its_own_bit(self) -> None:
         self.assertEqual([v.bit for v in a_machine().voices], [1 << n for n in range(8)])
@@ -171,10 +190,15 @@ class ScheduleTest(unittest.TestCase):
 
 class SilenceTest(unittest.TestCase):
     def test_a_muted_dsp_outputs_nothing(self) -> None:
+        # Arrange
         dsp = a_machine()
-        dsp.write(core.REG_FLG, core.FLG_MUTE)
+        dsp.write(state.REG_FLG, echo.FLG_MUTE)
 
-        self.assertEqual(set(dsp.render(16)), {0})
+        # Act
+        rendered = dsp.render(16)
+
+        # Assert
+        self.assertEqual(set(rendered), {0})
 
     def test_a_reset_dsp_with_no_voices_keyed_is_silent(self) -> None:
         self.assertEqual(set(a_machine().render(16)), {0})
@@ -284,60 +308,57 @@ class NoiseTest(unittest.TestCase):
         self.assertEqual(a_machine().noise, 0x4000)
 
     def test_the_noise_generator_moves_when_it_is_clocked(self) -> None:
+        # Arrange
         dsp = a_machine()
-        dsp.write(core.REG_FLG, 0x3F)
+        dsp.write(state.REG_FLG, 0x3F)
 
+        # Act
         dsp.render(64)
 
+        # Assert
         self.assertNotEqual(dsp.noise, 0x4000)
 
     def test_a_voice_can_be_switched_to_noise(self) -> None:
+        # Arrange
         dsp = keyed_on(a_voice_ram())
         dsp.write(core.REG_NON, 0x01)
-        dsp.write(core.REG_FLG, 0x2F)
+        dsp.write(state.REG_FLG, 0x2F)
 
-        self.assertTrue(any(value != 0 for value in dsp.render(64)))
+        # Act
+        rendered = dsp.render(64)
+
+        # Assert
+        self.assertNotEqual(set(rendered), {0})
 
 
 class EchoTest(unittest.TestCase):
     def test_echo_writes_are_suppressed_while_the_flag_says_so(self) -> None:
+        # Arrange
         memory = a_voice_ram()
         dsp = keyed_on(memory)
-        dsp.write(core.REG_ESA, 0x40)
-        dsp.write(core.REG_EDL, 0x01)
+        dsp.write(echo.REG_ESA, 0x40)
+        dsp.write(echo.REG_EDL, 0x01)
 
+        # Act
         dsp.render(64)
 
+        # Assert
         self.assertEqual(set(memory.data[0x4000:0x4100]), {0})
 
     def test_echo_writes_reach_memory_once_it_is_enabled(self) -> None:
+        # Arrange
         memory = a_voice_ram()
         dsp = keyed_on(memory)
-        dsp.write(core.REG_ESA, 0x40)
-        dsp.write(core.REG_EDL, 0x01)
+        dsp.write(echo.REG_ESA, 0x40)
+        dsp.write(echo.REG_EDL, 0x01)
         dsp.write(core.REG_EON, 0x01)
-        dsp.write(core.REG_FLG, 0x00)
+        dsp.write(state.REG_FLG, 0x00)
 
+        # Act
         dsp.render(200)
 
+        # Assert
         self.assertNotEqual(set(memory.data[0x4000:0x4100]), {0})
-
-
-class HelperTest(unittest.TestCase):
-    def test_clamping_holds_a_word_that_already_fits(self) -> None:
-        self.assertEqual(core._clamp16(1234), 1234)
-
-    def test_clamping_stops_at_the_top_of_the_range(self) -> None:
-        self.assertEqual(core._clamp16(0x9000), 0x7FFF)
-
-    def test_clamping_stops_at_the_bottom_of_the_range(self) -> None:
-        self.assertEqual(core._clamp16(-0x9000), -0x8000)
-
-    def test_a_byte_reads_as_signed(self) -> None:
-        self.assertEqual([core._signed8(0x7F), core._signed8(0x80)], [127, -128])
-
-    def test_a_word_reads_as_signed(self) -> None:
-        self.assertEqual([core._signed16(0x7FFF), core._signed16(0x8000)], [32767, -32768])
 
 
 class SuppliedKernelTest(unittest.TestCase):

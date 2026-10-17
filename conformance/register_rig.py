@@ -6,8 +6,9 @@ from functools import cache
 from pathlib import Path
 from typing import Any
 
-from sdsp import core
+from sdsp import core, echo, state
 from sdsp.memory import Memory
+from sdsp.voice import Voice
 
 RECORD = Path(__file__).resolve().parent / "hardware.json"
 
@@ -25,7 +26,7 @@ UNITY_PITCH = 0x10
 SETTLE = 16
 SIDES = {"Left": 0, "Right": 1, "L": 0, "R": 1}
 NUMBERS = {SOURCE: 0, QUIET: 1, STEADY: 2, SHORT: 3}
-NEWEST_TAP = core.REG_FIR + 0x70
+NEWEST_TAP = echo.REG_FIR + 0x70
 
 
 @cache
@@ -87,9 +88,9 @@ def a_memory(fill: int = 0) -> Memory:
 def a_part(memory: Memory | None = None) -> core.Chip:
     chip = core.Chip(a_memory() if memory is None else memory).reset()
     chip.write(core.REG_DIR, DIRECTORY)
-    chip.write(core.REG_MVOLL, LOUD)
-    chip.write(core.REG_MVOLL + 0x10, LOUD)
-    chip.write(core.REG_FLG, core.FLG_ECHO_OFF)
+    chip.write(echo.REG_MVOLL, LOUD)
+    chip.write(echo.REG_MVOLL + 0x10, LOUD)
+    chip.write(state.REG_FLG, echo.FLG_ECHO_OFF)
     return chip
 
 
@@ -109,7 +110,7 @@ def keyed(chip: core.Chip, voices: int = 0x01, source: int = SOURCE, gain: int =
     return chip
 
 
-def consumed(voice: core.Voice) -> int:
+def consumed(voice: Voice) -> int:
     blocks = (voice.brr_address - SOURCE) // core.BRR_BLOCK_BYTES
     return blocks * 16 + (voice.brr_offset - 1) * 2
 

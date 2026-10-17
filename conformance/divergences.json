@@ -65,11 +65,22 @@
       "parts": ["s-dsp"],
       "severity": "low",
       "status": "open",
-      "documentSays": "Nothing about what any register holds at power on.",
-      "referenceDoes": "Starts from whatever the harness put there.",
+      "documentSays": "Nothing about what any register, counter, latch or voice holds at power on.",
+      "referenceDoes": "Has no power on of its own: SPC_DSP::init runs its reset, so it starts from the state a reset sets.",
       "packageFollows": "neither",
-      "reasoning": "Nothing here begins cleared. A register that has not been written holds an arbitrary value derived from a seed, so a driver that depends on a register it never wrote fails visibly rather than working by accident.",
-      "wouldSettleIt": "A measurement of a real S-SMP immediately after power on, repeated across parts."
+      "reasoning": "Nothing here begins cleared or reset. Every register, counter, latch, decoded sample and position holds a value drawn from a seed, across the values the model's logic gives that field, so a driver that depends on state it never set fails visibly rather than working by accident. The noise generator is drawn from everything but 0, the one value its feedback cannot leave, as powerOn in hardware.json records.",
+      "wouldSettleIt": "A capture of the register file, and of a voice keyed with noise on, on a real audio unit before anything is written to it, repeated across power cycles and across parts."
+    },
+    {
+      "id": "reset-follows-the-reference",
+      "parts": ["s-dsp"],
+      "severity": "low",
+      "status": "open",
+      "documentSays": "That FLG carries a reset bit, and nothing about what a reset leaves in any register or latch.",
+      "referenceDoes": "SPC_DSP::load and SPC_DSP::soft_reset_common clear every register and everything after them in the state block, set FLG to E0, each voice's block offset to 1, the noise to 4000 and the every-other-sample toggle to 1.",
+      "packageFollows": "reference",
+      "reasoning": "The corpus agrees only while the reset does all of that: a reset that set the registers and released the voices and left the rest where power on put it agreed on 2 of the 240 cases. resetLine in hardware.json lists every field with its value and marks it unverified.",
+      "wouldSettleIt": "A capture of the register file on a real audio unit immediately after reset, and of a voice keyed with noise on straight after it."
     }
   ],
   "reference": "snes_spc 0.9.0 by Shay Green, carried inside snes9x 1.63 at apu/bapu/dsp/SPC_DSP.cpp and driven through conformance/ref into corpus.json. Another implementation, which is the lowest rung this family recognises. Naming its author rather than the emulator around it cuts both ways: it is stronger than a generic emulator, and it is not independent of that author's hardware test programs, so agreeing with both is one judgement rather than two.",

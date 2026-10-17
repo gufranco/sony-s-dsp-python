@@ -8,7 +8,7 @@ from typing import Any, override
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from sdsp import core, tables
+from sdsp import core, echo, state, tables
 from sdsp.memory import Memory
 
 HERE = Path(__file__).resolve().parent
@@ -82,7 +82,7 @@ def _fraction(text: str) -> Fraction:
 
 def _keyed(adsr: int, gain: int) -> core.Chip:
     chip = core.Chip(Memory(fill=0)).reset()
-    chip.write(core.REG_FLG, core.FLG_ECHO_OFF)
+    chip.write(state.REG_FLG, echo.FLG_ECHO_OFF)
     chip.write(core.V_ADSR0, adsr)
     chip.write(core.V_ADSR1, 0)
     chip.write(core.V_GAIN, gain)
@@ -120,9 +120,9 @@ def _furthest_from(trace: list[int], factor: Fraction) -> Fraction:
 def _noise_clock_after(nck: int) -> int:
     chip = _keyed(0, LOUD)
     chip.write(core.REG_NON, 0x01)
-    chip.write(core.REG_FLG, core.FLG_ECHO_OFF | nck)
+    chip.write(state.REG_FLG, echo.FLG_ECHO_OFF | nck)
     chip.render(SETTLE)
-    return chip.read(core.REG_FLG) & NOISE_CLOCK
+    return chip.read(state.REG_FLG) & NOISE_CLOCK
 
 
 class DocumentTest(unittest.TestCase):
@@ -174,42 +174,58 @@ class RegisterMapTest(unittest.TestCase):
         self.assertEqual(wrong, [])
 
     def test_every_global_address_this_model_names_is_where_the_manual_puts_it(self) -> None:
-        wrong = [
-            (name, address, mine)
-            for name, address, mine in (
-                ("MVOL (L)", self.globals["MVOL (L)"], core.REG_MVOLL),
-                ("EVOL (L)", self.globals["EVOL (L)"], core.REG_EVOLL),
-                ("KON", self.globals["KON"], core.REG_KON),
-                ("KOF", self.globals["KOF"], core.REG_KOFF),
-                ("FLG", self.globals["FLG"], core.REG_FLG),
-                ("ENDX", self.globals["ENDX"], core.REG_ENDX),
-                ("EFB", self.globals["EFB"], core.REG_EFB),
-                ("PMON", self.globals["PMON"], core.REG_PMON),
-                ("NON", self.globals["NON"], core.REG_NON),
-                ("EON", self.globals["EON"], core.REG_EON),
-                ("DIR", self.globals["DIR"], core.REG_DIR),
-                ("ESA", self.globals["ESA"], core.REG_ESA),
-                ("EDL", self.globals["EDL"], core.REG_EDL),
-            )
-            if address != mine
-        ]
+        # Arrange
+        named = (
+            ("MVOL (L)", echo.REG_MVOLL),
+            ("EVOL (L)", echo.REG_EVOLL),
+            ("KON", core.REG_KON),
+            ("KOF", core.REG_KOFF),
+            ("FLG", state.REG_FLG),
+            ("ENDX", core.REG_ENDX),
+            ("EFB", echo.REG_EFB),
+            ("PMON", core.REG_PMON),
+            ("NON", core.REG_NON),
+            ("EON", core.REG_EON),
+            ("DIR", core.REG_DIR),
+            ("ESA", echo.REG_ESA),
+            ("EDL", echo.REG_EDL),
+        )
 
+        # Act
+        wrong = [(name, mine) for name, mine in named if self.globals[name] != mine]
+
+        # Assert
         self.assertEqual(wrong, [])
 
     def test_the_voices_are_the_number_and_the_stride_the_manual_gives(self) -> None:
+        # Arrange
         stride = FACTS["registerMap"]["voiceStride"]
 
-        self.assertEqual((stride["voices"], stride["stride"]), (core.VOICE_COUNT, 0x10))
+        # Act
+        printed = (stride["voices"], stride["stride"])
+
+        # Assert
+        self.assertEqual(printed, (state.VOICE_COUNT, 0x10))
 
     def test_the_filter_is_eight_taps_starting_where_the_manual_says(self) -> None:
+        # Arrange
         coefficients = FACTS["registerMap"]["filterCoefficients"]["addresses"]
 
-        self.assertEqual((len(coefficients), int(coefficients[0], 16)), (8, core.REG_FIR))
+        # Act
+        printed = (len(coefficients), int(coefficients[0], 16))
+
+        # Assert
+        self.assertEqual(printed, (8, echo.REG_FIR))
 
     def test_the_map_covers_the_whole_register_file(self) -> None:
-        highest = max(int(row["address"], 16) for row in FACTS["registerMap"]["global"])
+        # Arrange
+        rows = FACTS["registerMap"]["global"]
 
-        self.assertLess(highest, core.REGISTER_COUNT)
+        # Act
+        highest = max(int(row["address"], 16) for row in rows)
+
+        # Assert
+        self.assertLess(highest, state.REGISTER_COUNT)
 
     def test_the_registers_the_dsp_writes_to_are_named(self) -> None:
         written = FACTS["registerMap"]["writtenByTheDsp"]["registers"]

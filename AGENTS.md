@@ -46,7 +46,7 @@ The rung a Sony data sheet would occupy is empty and the record says so.
 
 ## What is settled and what is not
 
-**Not settled: 6 things**, each in
+**Not settled: 7 things**, each in
 [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) with the measurement that would close it.
 The sharpest is that every sample rests on agreement between two
 implementations, which is not a measurement of silicon. The gaussian kernel is
@@ -119,6 +119,10 @@ the case it exists for.
 sdsp/
   __init__.py    the package, and the part chosen at construction
   core.py        the eight voices, and the thirty two step schedule
+  voice.py       one voice, scrambled at power on and defined by a reset
+  state.py       everything else the part holds, the same two ways
+  echo.py        the echo unit's steps of the schedule
+  words.py       clamping and sign extension
   memory.py      the store the part reads samples out of
   models.py      the catalogue, and the names the part answers to
   tables.py      the rate table, the counter offsets and the gaussian kernel
@@ -153,10 +157,14 @@ conformance/
   process. Holding it on the instance costs nothing measurable, which was
   measured rather than assumed: -0.4% against the module global over five
   alternating rounds, inside a run-to-run spread of about 2%.
-- **The part comes up scrambled.** Registers hold a pattern derived from a seed,
-  not zero, because no machine hands over cleared registers. `reset()` is a
-  separate event and does a different thing, and nothing calls it for you: a
-  test, a runner or an example that wants the defined state calls it itself.
+- **The part comes up scrambled.** Every register, counter, latch and voice
+  holds a pattern derived from a seed, not zero and not what a reset sets,
+  because no machine hands over a defined part. The noise generator is drawn
+  from everything but 0, which it could never leave. `reset()` is a separate
+  event and sets what `resetLine` in the record lists, and nothing calls it for
+  you: a test, a runner or an example that wants the defined state calls it
+  itself. A new field goes in both the power-on draw and the reset, in
+  `state.py` or `voice.py`, and in that list, or a test fails.
 - **The corpus is the only source for the audio.** A change that alters output
   and still passes the unit tests has not been checked at all until the corpus
   runs.

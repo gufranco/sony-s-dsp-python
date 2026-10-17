@@ -1,8 +1,21 @@
+import random
 from collections.abc import Callable, Sequence
 from typing import Protocol
 
-from .memory import UNSET_SEED, scramble
+from .echo import Echo
+from .memory import UNSET_SEED
+from .state import REG_FLG, next_noise
 from .tables import COUNTER_OFFSETS, COUNTER_RANGE, COUNTER_RATES, GAUSSIAN, check_kernel
+from .voice import (
+    BRR_BUFFER,
+    ENV_ATTACK,
+    ENV_DECAY,
+    ENV_RELEASE,
+    ENV_SUSTAIN,
+    KEY_ON_DELAY,
+    Voice,
+)
+from .words import clamp16, signed8, signed16
 
 Step = Callable[["Chip"], None]
 
@@ -13,31 +26,15 @@ class MemoryLike(Protocol):
     def write8(self, address: int, value: int) -> None: ...
 
 
-REGISTER_COUNT = 128
-VOICE_COUNT = 8
-
 BRR_BLOCK_BYTES = 9
-BRR_BUFFER = 12
 
-ENV_RELEASE = 0
-ENV_ATTACK = 1
-ENV_DECAY = 2
-ENV_SUSTAIN = 3
-
-REG_MVOLL = 0x0C
-REG_EFB = 0x0D
-REG_EVOLL = 0x2C
 REG_PMON = 0x2D
 REG_NON = 0x3D
 REG_EON = 0x4D
 REG_DIR = 0x5D
-REG_ESA = 0x6D
-REG_EDL = 0x7D
 REG_KON = 0x4C
 REG_KOFF = 0x5C
-REG_FLG = 0x6C
 REG_ENDX = 0x7C
-REG_FIR = 0x0F
 
 V_VOLL = 0x00
 V_PITCHL = 0x02
@@ -50,107 +47,14 @@ V_ENVX = 0x08
 V_OUTX = 0x09
 
 FLG_RESET = 0x80
-FLG_MUTE = 0x40
-FLG_ECHO_OFF = 0x20
-
-ECHO_HISTORY = 8
-
-RESET_FLAGS = 0xE0
 
 
-def _clamp16(value: int) -> int:
-    if value > 0x7FFF:
-        return 0x7FFF
-    if value < -0x8000:
-        return -0x8000
-    return value
-
-
-def _signed8(value: int) -> int:
-    value &= 0xFF
-    return value - 0x100 if value & 0x80 else value
-
-
-def _signed16(value: int) -> int:
-    value &= 0xFFFF
-    return value - 0x10000 if value & 0x8000 else value
-
-
-class Voice:
+class Chip(Echo):
     __slots__ = (
-        "base",
-        "bit",
-        "brr_address",
-        "brr_offset",
-        "buffer",
-        "buffer_position",
-        "envelope",
-        "envelope_mode",
-        "envelope_out",
-        "hidden_envelope",
-        "index",
-        "interpolation",
-        "key_on_delay",
-    )
-
-    def __init__(self, index: int) -> None:
-        self.index = index
-        self.bit = 1 << index
-        self.base = index * 0x10
-        self.buffer = [0] * (BRR_BUFFER * 2)
-        self.buffer_position = 0
-        self.interpolation = 0
-        self.brr_address = 0
-        self.brr_offset = 1
-        self.key_on_delay = 0
-        self.envelope_mode = ENV_RELEASE
-        self.envelope = 0
-        self.hidden_envelope = 0
-        self.envelope_out = 0
-
-
-class Chip:
-    __slots__ = (
-        "counter",
-        "echo_enabled",
-        "echo_history",
-        "echo_history_position",
-        "echo_in",
-        "echo_length",
-        "echo_offset",
-        "echo_out",
-        "echo_pointer",
-        "endx_buffer",
-        "envx_buffer",
-        "every_other_sample",
         "gaussian",
-        "kon",
-        "kon_check",
-        "main_out",
         "memory",
         "model",
-        "new_kon",
-        "noise",
-        "outx_buffer",
-        "phase",
-        "registers",
         "rendered",
-        "t_adsr0",
-        "t_brr_byte",
-        "t_brr_header",
-        "t_brr_next_address",
-        "t_dir",
-        "t_dir_address",
-        "t_eon",
-        "t_esa",
-        "t_koff",
-        "t_looped",
-        "t_non",
-        "t_output",
-        "t_pitch",
-        "t_pmon",
-        "t_srcn",
-        "voices",
     )
 
     def __init__(
@@ -160,65 +64,13 @@ class Chip:
         gaussian: Sequence[int] | None = None,
     ) -> None:
         self.memory = memory
-        self.registers = bytearray(scramble(REGISTER_COUNT, seed))
-        self.voices = [Voice(index) for index in range(VOICE_COUNT)]
         self.model = "s-dsp"
         self.gaussian = GAUSSIAN if gaussian is None else check_kernel(gaussian)
-        self._clear_state()
-
-    def _clear_state(self) -> None:
-        self.phase = 0
-        self.counter = 0
-        self.noise = 0x4000
-        self.every_other_sample = 1
-        self.kon = 0
-        self.new_kon = 0
-        self.kon_check = False
-        self.echo_offset = 0
-        self.echo_length = 0
-        self.echo_history = [[0, 0] for _ in range(ECHO_HISTORY * 2)]
-        self.echo_history_position = 0
-        self.main_out = [0, 0]
-        self.echo_out = [0, 0]
-        self.echo_in = [0, 0]
-        self.echo_pointer = 0
-        self.echo_enabled = 0
-        self.t_pmon = 0
-        self.t_non = 0
-        self.t_eon = 0
-        self.t_dir = 0
-        self.t_koff = 0
-        self.t_esa = 0
-        self.t_srcn = 0
-        self.t_dir_address = 0
-        self.t_brr_next_address = 0
-        self.t_adsr0 = 0
-        self.t_pitch = 0
-        self.t_brr_byte = 0
-        self.t_brr_header = 0
-        self.t_output = 0
-        self.t_looped = 0
-        self.endx_buffer = 0
-        self.outx_buffer = 0
-        self.envx_buffer = 0
-        self.rendered: list[int] = []
+        self.rendered = []
+        self._power_on(random.Random(seed))
 
     def reset(self) -> "Chip":
-        self._clear_state()
-        for index in range(REGISTER_COUNT):
-            self.registers[index] = 0
-        self.registers[REG_FLG] = RESET_FLAGS
-        for voice in self.voices:
-            voice.buffer = [0] * (BRR_BUFFER * 2)
-            voice.buffer_position = 0
-            voice.interpolation = 0
-            voice.brr_address = 0
-            voice.brr_offset = 1
-            voice.key_on_delay = 0
-            voice.envelope_mode = ENV_RELEASE
-            voice.envelope = 0
-            voice.hidden_envelope = 0
-            voice.envelope_out = 0
+        self._define()
         return self
 
     def read(self, address: int) -> int:
@@ -257,9 +109,9 @@ class Chip:
         out = (kernel[forward] * voice.buffer[at]) >> 11
         out += (kernel[forward + 256] * voice.buffer[at + 1]) >> 11
         out += (kernel[reverse + 256] * voice.buffer[at + 2]) >> 11
-        out = _signed16(out)
+        out = signed16(out)
         out += (kernel[reverse] * voice.buffer[at + 3]) >> 11
-        return _clamp16(out) & ~1
+        return clamp16(out) & ~1
 
     def _decode_brr(self, voice: Voice) -> None:
         nybbles = self.t_brr_byte * 0x100 + self.memory.read8(
@@ -273,7 +125,7 @@ class Chip:
             voice.buffer_position = 0
 
         for _ in range(4):
-            sample = _signed16(nybbles) >> 12
+            sample = signed16(nybbles) >> 12
             nybbles = (nybbles << 4) & 0xFFFFF
 
             shift = header >> 4
@@ -298,7 +150,7 @@ class Chip:
                 sample += first >> 1
                 sample += (-first) >> 5
 
-            sample = _signed16(_clamp16(sample) * 2)
+            sample = signed16(clamp16(sample) * 2)
             voice.buffer[at] = sample
             voice.buffer[at + BRR_BUFFER] = sample
             at += 1
@@ -378,7 +230,7 @@ class Chip:
             self.t_pitch += ((self.t_output >> 5) * self.t_pitch) >> 10
 
         if voice.key_on_delay:
-            if voice.key_on_delay == 5:
+            if voice.key_on_delay == KEY_ON_DELAY:
                 voice.brr_address = self.t_brr_next_address
                 voice.brr_offset = 1
                 voice.buffer_position = 0
@@ -395,7 +247,7 @@ class Chip:
 
         output = self._interpolate(voice)
         if self.t_non & voice.bit:
-            output = _signed16(self.noise * 2)
+            output = signed16(self.noise * 2)
 
         self.t_output = (output * voice.envelope) >> 11 & ~1
         voice.envelope_out = (voice.envelope >> 4) & 0xFF
@@ -408,17 +260,17 @@ class Chip:
             if self.t_koff & voice.bit:
                 voice.envelope_mode = ENV_RELEASE
             if self.kon & voice.bit:
-                voice.key_on_delay = 5
+                voice.key_on_delay = KEY_ON_DELAY
                 voice.envelope_mode = ENV_ATTACK
 
         if not voice.key_on_delay:
             self._run_envelope(voice)
 
     def _voice_output(self, voice: Voice, channel: int) -> None:
-        amplitude = (self.t_output * _signed8(self._voice_register(voice, V_VOLL + channel))) >> 7
-        self.main_out[channel] = _clamp16(self.main_out[channel] + amplitude)
+        amplitude = (self.t_output * signed8(self._voice_register(voice, V_VOLL + channel))) >> 7
+        self.main_out[channel] = clamp16(self.main_out[channel] + amplitude)
         if self.t_eon & voice.bit:
-            self.echo_out[channel] = _clamp16(self.echo_out[channel] + amplitude)
+            self.echo_out[channel] = clamp16(self.echo_out[channel] + amplitude)
 
     def voice_4(self, voice: Voice) -> None:
         self.t_looped = 0
@@ -439,7 +291,7 @@ class Chip:
     def voice_5(self, voice: Voice) -> None:
         self._voice_output(voice, 1)
         endx = self.registers[REG_ENDX] | self.t_looped
-        if voice.key_on_delay == 5:
+        if voice.key_on_delay == KEY_ON_DELAY:
             endx &= ~voice.bit
         self.endx_buffer = endx & 0xFF
 
@@ -480,95 +332,7 @@ class Chip:
             self.t_koff = self.registers[REG_KOFF]
         self._run_counters()
         if not self._read_counter(self.registers[REG_FLG] & 0x1F):
-            feedback = (self.noise << 13) ^ (self.noise << 14)
-            self.noise = (feedback & 0x4000) ^ (self.noise >> 1)
-
-    def _echo_address(self, channel: int) -> int:
-        return (self.echo_pointer + channel * 2) & 0xFFFF
-
-    def _echo_read(self, channel: int) -> None:
-        at = self._echo_address(channel)
-        sample = _signed16(self.memory.read8(at) | (self.memory.read8((at + 1) & 0xFFFF) << 8))
-        self.echo_history[self.echo_history_position][channel] = sample >> 1
-        self.echo_history[self.echo_history_position + ECHO_HISTORY][channel] = sample >> 1
-
-    def _fir(self, tap: int, channel: int) -> int:
-        held = self.echo_history[self.echo_history_position + tap + 1][channel]
-        return (held * _signed8(self.registers[REG_FIR + tap * 0x10])) >> 6
-
-    def echo_22(self) -> None:
-        self.echo_history_position += 1
-        if self.echo_history_position >= ECHO_HISTORY:
-            self.echo_history_position = 0
-        self.echo_pointer = (self.t_esa * 0x100 + self.echo_offset) & 0xFFFF
-        self._echo_read(0)
-        self.echo_in = [self._fir(0, 0), self._fir(0, 1)]
-
-    def echo_23(self) -> None:
-        self.echo_in[0] += self._fir(1, 0) + self._fir(2, 0)
-        self.echo_in[1] += self._fir(1, 1) + self._fir(2, 1)
-        self._echo_read(1)
-
-    def echo_24(self) -> None:
-        self.echo_in[0] += self._fir(3, 0) + self._fir(4, 0) + self._fir(5, 0)
-        self.echo_in[1] += self._fir(3, 1) + self._fir(4, 1) + self._fir(5, 1)
-
-    def echo_25(self) -> None:
-        left = _signed16(self.echo_in[0] + self._fir(6, 0))
-        right = _signed16(self.echo_in[1] + self._fir(6, 1))
-        left += _signed16(self._fir(7, 0))
-        right += _signed16(self._fir(7, 1))
-        self.echo_in = [_clamp16(left) & ~1, _clamp16(right) & ~1]
-
-    def _echo_output(self, channel: int) -> int:
-        main = _signed16(
-            (self.main_out[channel] * _signed8(self.registers[REG_MVOLL + channel * 0x10])) >> 7
-        )
-        echo = _signed16(
-            (self.echo_in[channel] * _signed8(self.registers[REG_EVOLL + channel * 0x10])) >> 7
-        )
-        return _clamp16(main + echo)
-
-    def echo_26(self) -> None:
-        self.main_out[0] = self._echo_output(0)
-        feedback = _signed8(self.registers[REG_EFB])
-        left = self.echo_out[0] + _signed16((self.echo_in[0] * feedback) >> 7)
-        right = self.echo_out[1] + _signed16((self.echo_in[1] * feedback) >> 7)
-        self.echo_out = [_clamp16(left) & ~1, _clamp16(right) & ~1]
-
-    def echo_27(self) -> None:
-        left = self.main_out[0]
-        right = self._echo_output(1)
-        self.main_out = [0, 0]
-        if self.registers[REG_FLG] & FLG_MUTE:
-            left = 0
-            right = 0
-        self.rendered.append(left)
-        self.rendered.append(right)
-
-    def echo_28(self) -> None:
-        self.echo_enabled = self.registers[REG_FLG]
-
-    def _echo_write(self, channel: int) -> None:
-        if not self.echo_enabled & FLG_ECHO_OFF:
-            at = self._echo_address(channel)
-            value = self.echo_out[channel] & 0xFFFF
-            self.memory.write8(at, value & 0xFF)
-            self.memory.write8((at + 1) & 0xFFFF, value >> 8)
-        self.echo_out[channel] = 0
-
-    def echo_29(self) -> None:
-        self.t_esa = self.registers[REG_ESA]
-        if not self.echo_offset:
-            self.echo_length = (self.registers[REG_EDL] & 0x0F) * 0x800
-        self.echo_offset += 4
-        if self.echo_offset >= self.echo_length:
-            self.echo_offset = 0
-        self._echo_write(0)
-        self.echo_enabled = self.registers[REG_FLG]
-
-    def echo_30(self) -> None:
-        self._echo_write(1)
+            self.noise = next_noise(self.noise)
 
     def clock(self) -> None:
         for step in SCHEDULE[self.phase]:

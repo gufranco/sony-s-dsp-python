@@ -227,18 +227,65 @@ endpoint the manual omits.
 
 **What would settle or reopen it.** A page naming the level, or a measurement.
 
-### What a register holds at power on.
+### What the part holds at power on.
 
-**The document says.** Nothing.
+**The document says.** Nothing, for any of it.
 
-**What this project follows.** A scrambled pattern derived from a seed, which is
-reproducible and is not zero.
+**What this project follows.** A pattern drawn from a seed, reproducible and not
+cleared, for every piece of state the part has. None of it is kept fixed,
+because nothing printed and nothing measured says what any of it holds:
 
-**Why.** Zero is the one answer that is certainly wrong: a machine does not hand
-over cleared registers. What a reset leaves behind is a separate question and is
-modelled, with the record marking it unverified.
+- the 128 registers;
+- which of the thirty two clocks runs first, and the rate counter the envelopes
+  and the noise clock count against;
+- the noise generator, anywhere in its fifteen bits except 0;
+- the every-other-sample toggle, the key-on latch, the key-on value last taken
+  and the flag that a key-on happened;
+- the echo position, length and pointer, the eight samples of echo history and
+  which of them is newest, and the flag value the echo unit last read;
+- the left and right sums for the main mix, the echo input and the echo output;
+- the values the schedule carries from one clock to the next: the pitch, the
+  directory and block addresses, the block header and byte, the output, and the
+  ENDX, OUTX and ENVX values waiting to be written;
+- in each voice, its twelve decoded samples, the group of four the next decode
+  lands on, its block address and the pair inside the block, its pitch position,
+  its key-on delay, and its envelope phase, level, hidden level and the level it
+  reports.
 
-**What would settle or reopen it.** A capture of the register file at power on.
+**Why.** Zero is the one answer that is certainly wrong: a machine does not
+hand over cleared latches, and a value a reset sets is no better, because it
+would make a part nobody reset behave like one somebody did. Each field is drawn
+across the values the model's own logic gives it, so a part nobody reset still
+runs. The noise generator never comes up holding 0, because 0 is the one value
+its feedback cannot leave: a part that did would play silent noise until reset,
+and the record says so under `powerOn`.
+
+**What would settle or reopen it.** A capture of the register file, and of the
+output of a voice keyed with noise on, on a real audio unit before anything is
+written to it, repeated across power cycles and across parts. A field that held
+the same value every time would then be fixed, with the capture cited.
+
+### What a reset sets beyond the flag register.
+
+**The document says.** That `FLG` carries a reset bit. It never says what a
+reset leaves in any register or in any latch.
+
+**What this project follows.** `snes_spc 0.9.0` as snes9x 1.63 carries it, the
+implementation the corpus was recorded from: every register and every latch
+cleared, `FLG` set to `$E0`, the noise generator set to `$4000`, the
+every-other-sample toggle set to 1, and each voice's block offset set to the
+first pair. `resetLine` in the record lists every field with its value, and a
+test holds the model to that list.
+
+**Why.** The corpus agrees only while the reset does all of that. A reset that
+set the registers and released the voices and left everything else where power
+on put it agreed on 2 of the 240 cases. So the reset is a reading of another
+implementation, which is a rung below anything printed, and the record marks it
+unverified.
+
+**What would settle or reopen it.** A capture of the register file on a real
+audio unit immediately after reset, and of a voice keyed with noise on straight
+after it, which shows where the generator starts.
 
 ### Whether any of this is a claim about Sony's part rather than about a model.
 

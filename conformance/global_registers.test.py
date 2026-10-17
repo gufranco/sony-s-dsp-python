@@ -27,27 +27,28 @@ from conformance.register_rig import (
     silent,
     voiced,
 )
-from sdsp import core
+from sdsp import core, echo, state
+from sdsp.voice import ENV_ATTACK, ENV_RELEASE
 
 
 def keyed_by(address: int, value: int) -> list[int]:
     chip = voiced(a_part(), 0xFF)
     chip.write(address, value)
     chip.render(4)
-    return [voice.index for voice in chip.voices if voice.envelope_mode == core.ENV_ATTACK]
+    return [voice.index for voice in chip.voices if voice.envelope_mode == ENV_ATTACK]
 
 
 def flag_effects(address: int, flags: int) -> tuple[bool, bool, bool, bool]:
     memory = a_memory(fill=UNTOUCHED)
     chip = keyed(a_part(memory))
-    chip.write(core.REG_ESA, ECHO)
-    chip.write(core.REG_EDL, 1)
+    chip.write(echo.REG_ESA, ECHO)
+    chip.write(echo.REG_EDL, 1)
     chip.render(SETTLE)
     chip.write(address, flags)
     rendered = chip.render(64)
     echoed = memory.data[ECHO * 0x100 : ECHO * 0x100 + ECHO_SPAN]
     return (
-        chip.voices[0].envelope_mode == core.ENV_RELEASE,
+        chip.voices[0].envelope_mode == ENV_RELEASE,
         silent(rendered[-32:]),
         echoed != bytes([UNTOUCHED]) * ECHO_SPAN,
         chip.noise != 0x4000,
@@ -57,11 +58,11 @@ def flag_effects(address: int, flags: int) -> tuple[bool, bool, bool, bool]:
 def everything_after(address: int, value: int) -> tuple[list[int], bytes, bytes]:
     memory = a_memory()
     chip = keyed(a_part(memory))
-    chip.write(core.REG_ESA, ECHO)
+    chip.write(echo.REG_ESA, ECHO)
     chip.write(core.REG_EON, 0x01)
-    chip.write(core.REG_EVOLL, LOUD)
+    chip.write(echo.REG_EVOLL, LOUD)
     chip.write(NEWEST_TAP, LOUD)
-    chip.write(core.REG_FLG, 0)
+    chip.write(state.REG_FLG, 0)
     chip.write(address, value)
     rendered = chip.render(64)
     others = chip.registers[:address] + chip.registers[address + 1 :]
@@ -139,7 +140,7 @@ class GlobalRegisterTest(unittest.TestCase):
         # Assert
         self.assertEqual(
             (sounding > 0, chip.voices[0].envelope_mode, chip.voices[0].envelope),
-            (True, core.ENV_RELEASE, 0),
+            (True, ENV_RELEASE, 0),
         )
 
     def test_the_flag_register_switches_reset_mute_echo_and_noise_clock(self) -> None:

@@ -9,8 +9,9 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from sdsp.core import REGISTER_COUNT, Chip
+from sdsp.core import Chip
 from sdsp.memory import Memory
+from sdsp.state import REGISTER_COUNT
 
 EXAMPLE_LIMIT = 5
 

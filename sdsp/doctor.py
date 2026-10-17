@@ -19,7 +19,7 @@ def _reachable(root: Path = ROOT, path: list[str] | None = None) -> bool:
 
 _reachable()
 
-from sdsp import core, environment, memory, models  # noqa: E402
+from sdsp import environment, memory, models, state  # noqa: E402
 from sdsp.version import VERSION  # noqa: E402
 
 CORPUS = ROOT / "conformance" / "corpus.json"
@@ -88,7 +88,7 @@ def _part(name: str, build: Callable[[str], Any]) -> "Finding":
         True,
         f"{described.voices} voices, {described.registers} registers,"
         f" model {getattr(chip, 'model', name)},"
-        f" resets to flags ${chip.read(core.REG_FLG):02X}",
+        f" resets to flags ${chip.read(state.REG_FLG):02X}",
     )
 
 
