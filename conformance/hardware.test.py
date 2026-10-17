@@ -1,12 +1,15 @@
 import json
 import sys
 import unittest
+from fractions import Fraction
+from itertools import pairwise
 from pathlib import Path
 from typing import Any, override
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sdsp import core, tables
+from sdsp.memory import Memory
 
 HERE = Path(__file__).resolve().parent
 FACTS: dict[str, Any] = json.loads((HERE / "hardware.json").read_text())
@@ -17,6 +20,14 @@ SAMPLE_RATE = 32000
 ATTACK_STEPS = 64
 
 FULL = 0x7FF
+
+FULL_SCALE = 0x800
+
+SETTLE = 16
+
+LOUD = 0x7F
+
+NOISE_CLOCK = 0x1F
 
 
 def _seconds(text: str) -> float:
@@ -62,6 +73,56 @@ def _implied_ticks() -> list[float]:
         if rate:
             found.append(_seconds(row["time"]) * SAMPLE_RATE / tables.COUNTER_RATES[rate])
     return found
+
+
+def _fraction(text: str) -> Fraction:
+    whole, _, part = text.partition("-")
+    return Fraction(whole) - Fraction(part) if part else Fraction(whole)
+
+
+def _keyed(adsr: int, gain: int) -> core.Chip:
+    chip = core.Chip(Memory(fill=0))
+    chip.write(core.REG_FLG, core.FLG_ECHO_OFF)
+    chip.write(core.V_ADSR0, adsr)
+    chip.write(core.V_ADSR1, 0)
+    chip.write(core.V_GAIN, gain)
+    chip.write(core.REG_KON, 0x01)
+    return chip
+
+
+def _trace(chip: core.Chip, samples: int) -> list[int]:
+    found = []
+    for _ in range(samples):
+        chip.render(1)
+        found.append(chip.voices[0].envelope)
+    return found
+
+
+def _then(start: int, change: tuple[int, int], samples: int) -> list[int]:
+    chip = _keyed(0, start)
+    chip.render(SETTLE)
+    chip.write(*change)
+    return _trace(chip, samples)
+
+
+def _rises(trace: list[int]) -> set[int]:
+    return {after - before for before, after in pairwise(trace) if after > before}
+
+
+def _falls(trace: list[int]) -> set[int]:
+    return {before - after for before, after in pairwise(trace) if after < before}
+
+
+def _furthest_from(trace: list[int], factor: Fraction) -> Fraction:
+    return max(abs(after - before * factor) for before, after in pairwise(trace) if after < before)
+
+
+def _noise_clock_after(nck: int) -> int:
+    chip = _keyed(0, LOUD)
+    chip.write(core.REG_NON, 0x01)
+    chip.write(core.REG_FLG, core.FLG_ECHO_OFF | nck)
+    chip.render(SETTLE)
+    return chip.read(core.REG_FLG) & NOISE_CLOCK
 
 
 class DocumentTest(unittest.TestCase):
@@ -273,6 +334,72 @@ class DivergenceTest(unittest.TestCase):
         named = {entry["id"] for entry in self.entries}
 
         self.assertIn("gaussian-kernel-is-undocumented", named)
+
+
+class PrintedStepTest(unittest.TestCase):
+    def test_an_attack_climbs_by_the_printed_step(self) -> None:
+        # Arrange
+        step = _fraction(FACTS["envelope"]["steps"]["attackStep"]) * FULL_SCALE
+        chip = _keyed(0x8E, 0)
+
+        # Act
+        found = _trace(chip, 40)
+
+        # Assert
+        self.assertEqual(_rises(found), {step})
+
+    def test_a_decay_falls_by_the_printed_factor(self) -> None:
+        # Arrange
+        factor = _fraction(FACTS["envelope"]["steps"]["decayFactor"])
+        chip = _keyed(0xFF, 0)
+        chip.render(SETTLE)
+
+        # Act
+        found = _trace(chip, 200)
+
+        # Assert
+        self.assertEqual((len(_falls(found)) > 1, _furthest_from(found, factor) < 1), (True, True))
+
+    def test_a_key_off_falls_by_the_printed_step(self) -> None:
+        # Arrange
+        step = _fraction(FACTS["envelope"]["steps"]["keyOffStep"]) * FULL_SCALE
+
+        # Act
+        found = _then(LOUD, (core.REG_KOFF, 0x01), 300)
+
+        # Assert
+        self.assertEqual(_falls(found), {step})
+
+    def test_gain_mode_steps_by_the_same_printed_values(self) -> None:
+        # Arrange
+        steps = FACTS["envelope"]["steps"]
+        step = _fraction(steps["attackStep"]) * FULL_SCALE
+        factor = _fraction(steps["decayFactor"])
+
+        # Act
+        found = [
+            _then(0x00, (core.V_GAIN, 0xDF), 40),
+            _then(LOUD, (core.V_GAIN, 0x9F), 40),
+            _then(LOUD, (core.V_GAIN, 0xBF), 200),
+        ]
+
+        # Assert
+        self.assertEqual(
+            (_rises(found[0]), _falls(found[1]), _furthest_from(found[2], factor) < 1),
+            ({step}, {step}, True),
+        )
+
+
+class NoiseClockWriteTest(unittest.TestCase):
+    def test_only_the_cpu_writes_the_noise_clock(self) -> None:
+        # Arrange
+        rows = [int(row["nck"], 16) for row in FACTS["noiseClock"]["rows"]]
+
+        # Act
+        found = [_noise_clock_after(nck) for nck in rows]
+
+        # Assert
+        self.assertEqual(found, rows)
 
 
 if __name__ == "__main__":
