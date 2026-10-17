@@ -1,3 +1,4 @@
+import random
 import struct
 import sys
 import unittest
@@ -6,193 +7,274 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from sdsp import core, echo, state, tables, voice
-from sdsp.errors import NotAKernel
-from sdsp.memory import Memory, scramble
+import sdsp
+from conformance.register_rig import Part
+
+BRR_BLOCK_BYTES = 9
+
+VOLL = 0x00
+PITCHL = 0x02
+PITCHH = 0x03
+GAIN = 0x07
+ENVX = 0x08
+OUTX = 0x09
+MVOLL = 0x0C
+MVOLR = 0x1C
+KON = 0x4C
+DIR = 0x5D
+FLG = 0x6C
+ENDX = 0x7C
+
+RESET_FLAGS = 0xE0
+MUTE = 0x40
+ECHO_WRITES_OFF = 0x20
 
 
-def a_machine(fill: int = 0) -> Any:
-    return core.Chip(Memory(fill=fill)).reset()
+def a_machine(fill: int = 0) -> Part:
+    return sdsp.Chip("s-dsp", sdsp.Memory(fill=fill)).reset()
 
 
 def a_voice_ram(
     rng_seed: int = 7, blocks: int = 16, at: int = 0x1000, directory: int = 0x0200
-) -> Any:
-    import random
-
+) -> sdsp.Memory:
     rng = random.Random(rng_seed)
-    memory = Memory(fill=0)
+    memory = sdsp.Memory(fill=0)
     for block in range(blocks):
-        base = at + block * core.BRR_BLOCK_BYTES
+        base = at + block * BRR_BLOCK_BYTES
         memory.write8(base, 12 << 4)
         for offset in range(8):
             memory.write8(base + 1 + offset, rng.randrange(256))
-    last = at + (blocks - 1) * core.BRR_BLOCK_BYTES
+    last = at + (blocks - 1) * BRR_BLOCK_BYTES
     memory.write8(last, memory.read8(last) | 0x01)
     for index, value in enumerate(struct.pack("<HH", at, at)):
         memory.write8(directory + index, value)
     return memory
 
 
-def keyed_on(memory: Any, directory: int = 0x02) -> Any:
-    dsp = core.Chip(memory).reset()
-    dsp.write(core.REG_DIR, directory)
-    dsp.write(echo.REG_MVOLL, 0x7F)
-    dsp.write(echo.REG_MVOLL + 0x10, 0x7F)
-    dsp.write(core.V_VOLL, 0x7F)
-    dsp.write(core.V_VOLL + 1, 0x7F)
-    dsp.write(core.V_PITCHL, 0x00)
-    dsp.write(core.V_PITCHH, 0x10)
-    dsp.write(core.V_GAIN, 0x7F)
-    dsp.write(state.REG_FLG, 0x20)
-    dsp.write(core.REG_KON, 0x01)
+def keyed_on(memory: sdsp.Memory, directory: int = 0x02, **options: Any) -> Part:
+    dsp = sdsp.Chip("s-dsp", memory, **options).reset()
+    dsp.write(DIR, directory)
+    dsp.write(MVOLL, 0x7F)
+    dsp.write(MVOLR, 0x7F)
+    dsp.write(VOLL, 0x7F)
+    dsp.write(VOLL + 1, 0x7F)
+    dsp.write(PITCHL, 0x00)
+    dsp.write(PITCHH, 0x10)
+    dsp.write(GAIN, 0x7F)
+    dsp.write(FLG, ECHO_WRITES_OFF)
+    dsp.write(KON, 0x01)
     return dsp
 
 
 class ResetTest(unittest.TestCase):
     def test_a_reset_leaves_the_flag_register_where_hardware_leaves_it(self) -> None:
         # Arrange
-        dsp = core.Chip(Memory(fill=0))
+        dsp = sdsp.Chip("s-dsp", sdsp.Memory(fill=0))
 
         # Act
         dsp.reset()
 
         # Assert
-        self.assertEqual(dsp.registers[state.REG_FLG], 0xE0)
+        self.assertEqual(dsp.registers[FLG], RESET_FLAGS)
 
     def test_a_reset_releases_every_voice(self) -> None:
         # Arrange
-        dsp = core.Chip(Memory(fill=0))
+        dsp = sdsp.Chip("s-dsp", sdsp.Memory(fill=0))
 
         # Act
         dsp.reset()
 
         # Assert
-        self.assertEqual({v.envelope_mode for v in dsp.voices}, {voice.ENV_RELEASE})
+        self.assertEqual({v.envelope_mode for v in dsp.voices}, {sdsp.ENV_RELEASE})
 
     def test_registers_are_not_assumed_clear_before_a_reset(self) -> None:
         # Arrange
-        memory = Memory(fill=0)
+        memory = sdsp.Memory(fill=0)
 
         # Act
-        dsp = core.Chip(memory)
+        dsp = sdsp.Chip("s-dsp", memory)
 
         # Assert
-        self.assertNotEqual(bytes(dsp.registers), bytes(state.REGISTER_COUNT))
+        self.assertNotEqual(bytes(dsp.registers), bytes(sdsp.REGISTER_COUNT))
 
     def test_a_built_part_holds_the_power_on_pattern_and_nothing_a_reset_sets(self) -> None:
         # Arrange
         seed = 0x1234
 
         # Act
-        dsp = core.Chip(Memory(fill=0), seed=seed)
+        dsp = sdsp.Chip("s-dsp", sdsp.Memory(fill=0), seed=seed)
 
         # Assert
-        self.assertEqual(dsp.registers, scramble(state.REGISTER_COUNT, seed))
+        self.assertEqual(dsp.registers, sdsp.scramble(sdsp.REGISTER_COUNT, seed))
 
     def test_the_constructor_offers_no_way_to_arrive_reset(self) -> None:
         # Arrange
-        memory = Memory(fill=0)
+        memory = sdsp.Memory(fill=0)
 
         # Act
         refused = self.assertRaises(TypeError)
         with refused:
-            core.Chip(memory, reset=True)  # type: ignore[call-arg]
+            sdsp.Chip("s-dsp", memory, reset=True)
 
         # Assert
         self.assertIn("reset", str(refused.exception))
 
     def test_only_a_call_to_reset_sets_what_a_reset_defines(self) -> None:
         # Arrange
-        dsp = core.Chip(Memory(fill=0), seed=0x1234)
+        dsp = sdsp.Chip("s-dsp", sdsp.Memory(fill=0), seed=0x1234)
 
         # Act
         dsp.reset()
 
         # Assert
-        self.assertEqual(dsp.read(state.REG_FLG), 0xE0)
+        self.assertEqual(dsp.read(FLG), RESET_FLAGS)
 
     def test_there_are_eight_voices(self) -> None:
         # Arrange
-        memory = Memory(fill=0)
+        memory = sdsp.Memory(fill=0)
 
         # Act
-        dsp = core.Chip(memory)
+        dsp = sdsp.Chip("s-dsp", memory)
 
         # Assert
-        self.assertEqual(len(dsp.voices), state.VOICE_COUNT)
+        self.assertEqual(len(dsp.voices), 8)
 
     def test_each_voice_knows_its_own_bit(self) -> None:
-        self.assertEqual([v.bit for v in a_machine().voices], [1 << n for n in range(8)])
+        # Arrange
+        dsp = a_machine()
+
+        # Act
+        bits = [voice.bit for voice in dsp.voices]
+
+        # Assert
+        self.assertEqual(bits, [1 << n for n in range(8)])
 
 
 class RegisterTest(unittest.TestCase):
     def test_a_write_reads_back(self) -> None:
+        # Arrange
         dsp = a_machine()
 
+        # Act
         dsp.write(0x00, 0x5A)
 
+        # Assert
         self.assertEqual(dsp.read(0x00), 0x5A)
 
     def test_a_write_keeps_only_the_low_byte(self) -> None:
+        # Arrange
         dsp = a_machine()
 
+        # Act
         dsp.write(0x00, 0x1FF)
 
+        # Assert
         self.assertEqual(dsp.read(0x00), 0xFF)
 
     def test_an_address_above_the_register_file_wraps_into_it(self) -> None:
+        # Arrange
         dsp = a_machine()
 
+        # Act
         dsp.write(0x80, 0x33)
 
+        # Assert
         self.assertEqual(dsp.read(0x00), 0x33)
 
     def test_writing_key_on_arms_it_rather_than_taking_effect_at_once(self) -> None:
+        # Arrange
         dsp = a_machine()
 
-        dsp.write(core.REG_KON, 0xFF)
+        # Act
+        dsp.write(KON, 0xFF)
 
-        self.assertEqual(dsp.new_kon, 0xFF)
-        self.assertEqual(dsp.kon, 0)
+        # Assert
+        self.assertEqual(
+            {(voice.envelope_mode, voice.key_on_delay) for voice in dsp.voices},
+            {(sdsp.ENV_RELEASE, 0)},
+        )
+
+    def test_and_the_armed_key_on_starts_every_voice_within_three_samples(self) -> None:
+        # Arrange
+        dsp = a_machine()
+        dsp.write(FLG, ECHO_WRITES_OFF)
+        dsp.write(KON, 0xFF)
+
+        # Act
+        dsp.render(3)
+
+        # Assert
+        self.assertEqual({voice.envelope_mode for voice in dsp.voices}, {sdsp.ENV_ATTACK})
 
     def test_writing_the_end_flags_clears_them(self) -> None:
+        # Arrange
         dsp = a_machine()
-        dsp.registers[core.REG_ENDX] = 0xFF
+        dsp.registers[ENDX] = 0xFF
 
-        dsp.write(core.REG_ENDX, 0xFF)
+        # Act
+        dsp.write(ENDX, 0xFF)
 
-        self.assertEqual(dsp.read(core.REG_ENDX), 0)
+        # Assert
+        self.assertEqual(dsp.read(ENDX), 0)
 
 
 class ScheduleTest(unittest.TestCase):
     def test_a_sample_takes_thirty_two_clocks(self) -> None:
-        self.assertEqual(len(core.SCHEDULE), 32)
+        # Arrange
+        schedule = sdsp.PIPELINE
+
+        # Act
+        clocks = sorted(schedule)
+
+        # Assert
+        self.assertEqual(clocks, list(range(32)))
 
     def test_every_clock_does_something(self) -> None:
-        self.assertTrue(all(len(steps) for steps in core.SCHEDULE))
+        # Arrange
+        schedule = sdsp.PIPELINE
+
+        # Act
+        idle = [clock for clock, steps in schedule.items() if not steps]
+
+        # Assert
+        self.assertEqual(idle, [])
 
     def test_the_phase_wraps_after_a_whole_sample(self) -> None:
+        # Arrange
         dsp = a_machine()
 
+        # Act
         dsp.run(32)
 
+        # Assert
         self.assertEqual(dsp.phase, 0)
 
     def test_running_a_sample_produces_one_stereo_pair(self) -> None:
+        # Arrange
         dsp = a_machine()
 
-        self.assertEqual(len(dsp.render(1)), 2)
+        # Act
+        rendered = dsp.render(1)
+
+        # Assert
+        self.assertEqual(len(rendered), 2)
 
     def test_running_many_samples_produces_that_many_pairs(self) -> None:
-        self.assertEqual(len(a_machine().render(20)), 40)
+        # Arrange
+        dsp = a_machine()
+
+        # Act
+        rendered = dsp.render(20)
+
+        # Assert
+        self.assertEqual(len(rendered), 40)
 
 
 class SilenceTest(unittest.TestCase):
     def test_a_muted_dsp_outputs_nothing(self) -> None:
         # Arrange
-        dsp = a_machine()
-        dsp.write(state.REG_FLG, echo.FLG_MUTE)
+        dsp = keyed_on(a_voice_ram())
+        dsp.write(FLG, MUTE)
 
         # Act
         rendered = dsp.render(16)
@@ -201,128 +283,20 @@ class SilenceTest(unittest.TestCase):
         self.assertEqual(set(rendered), {0})
 
     def test_a_reset_dsp_with_no_voices_keyed_is_silent(self) -> None:
-        self.assertEqual(set(a_machine().render(16)), {0})
+        # Arrange
+        dsp = a_machine()
+
+        # Act
+        rendered = dsp.render(16)
+
+        # Assert
+        self.assertEqual(set(rendered), {0})
 
 
 class VoiceTest(unittest.TestCase):
     def test_a_keyed_voice_eventually_makes_sound(self) -> None:
-        dsp = keyed_on(a_voice_ram())
-
-        rendered = dsp.render(64)
-
-        self.assertTrue(any(value != 0 for value in rendered))
-
-    def test_a_keyed_voice_is_silent_during_its_key_on_delay(self) -> None:
-        dsp = keyed_on(a_voice_ram())
-
-        rendered = dsp.render(3)
-
-        self.assertEqual(set(rendered), {0})
-
-    def test_a_voice_reports_its_envelope_while_it_plays(self) -> None:
-        dsp = keyed_on(a_voice_ram())
-
-        dsp.render(32)
-
-        self.assertGreater(dsp.read(core.V_ENVX), 0)
-
-    def test_reaching_the_end_of_a_sample_sets_the_end_flag(self) -> None:
-        dsp = keyed_on(a_voice_ram(blocks=2))
-
-        dsp.render(200)
-
-        self.assertTrue(dsp.read(core.REG_ENDX) & 0x01)
-
-    def test_the_same_setup_renders_the_same_audio_twice(self) -> None:
-        first = keyed_on(a_voice_ram()).render(48)
-        second = keyed_on(a_voice_ram()).render(48)
-
-        self.assertEqual(first, second)
-
-
-class EnvelopeTest(unittest.TestCase):
-    def test_a_released_voice_falls_to_nothing(self) -> None:
-        dsp = keyed_on(a_voice_ram())
-        dsp.render(32)
-
-        dsp.write(core.REG_KOFF, 0x01)
-        dsp.render(400)
-
-        self.assertEqual(dsp.voices[0].envelope, 0)
-
-    def test_direct_gain_holds_the_level_it_was_given(self) -> None:
-        dsp = keyed_on(a_voice_ram())
-
-        dsp.render(64)
-
-        self.assertEqual(dsp.voices[0].envelope, 0x7F * 0x10)
-
-    def test_linear_decrease_gain_falls_by_a_fixed_step(self) -> None:
-        dsp = keyed_on(a_voice_ram())
-        dsp.render(16)
-        raised = dsp.voices[0].envelope
-
-        dsp.write(core.V_GAIN, 0x9F)
-        dsp.render(8)
-
-        self.assertLess(dsp.voices[0].envelope, raised)
-
-    def test_exponential_decrease_gain_falls_away(self) -> None:
-        dsp = keyed_on(a_voice_ram())
-        dsp.render(16)
-        raised = dsp.voices[0].envelope
-
-        dsp.write(core.V_GAIN, 0xBF)
-        dsp.render(8)
-
-        self.assertLess(dsp.voices[0].envelope, raised)
-
-    def test_linear_increase_gain_climbs(self) -> None:
-        dsp = keyed_on(a_voice_ram())
-        dsp.write(core.V_GAIN, 0xDF)
-
-        dsp.render(40)
-
-        self.assertGreater(dsp.voices[0].envelope, 0)
-
-    def test_bent_increase_gain_climbs_then_slows(self) -> None:
-        dsp = keyed_on(a_voice_ram())
-        dsp.write(core.V_GAIN, 0xFF)
-
-        dsp.render(200)
-
-        self.assertGreater(dsp.voices[0].hidden_envelope, 0x600)
-
-    def test_an_attack_climbs_from_nothing(self) -> None:
-        dsp = keyed_on(a_voice_ram())
-        dsp.write(core.V_ADSR0, 0x8F)
-        dsp.write(core.V_ADSR1, 0xE0)
-
-        dsp.render(40)
-
-        self.assertGreater(dsp.voices[0].envelope, 0)
-
-
-class NoiseTest(unittest.TestCase):
-    def test_the_noise_register_starts_where_hardware_starts_it(self) -> None:
-        self.assertEqual(a_machine().noise, 0x4000)
-
-    def test_the_noise_generator_moves_when_it_is_clocked(self) -> None:
-        # Arrange
-        dsp = a_machine()
-        dsp.write(state.REG_FLG, 0x3F)
-
-        # Act
-        dsp.render(64)
-
-        # Assert
-        self.assertNotEqual(dsp.noise, 0x4000)
-
-    def test_a_voice_can_be_switched_to_noise(self) -> None:
         # Arrange
         dsp = keyed_on(a_voice_ram())
-        dsp.write(core.REG_NON, 0x01)
-        dsp.write(state.REG_FLG, 0x2F)
 
         # Act
         rendered = dsp.render(64)
@@ -330,127 +304,104 @@ class NoiseTest(unittest.TestCase):
         # Assert
         self.assertNotEqual(set(rendered), {0})
 
-
-class EchoTest(unittest.TestCase):
-    def test_echo_writes_are_suppressed_while_the_flag_says_so(self) -> None:
+    def test_a_keyed_voice_is_silent_during_its_key_on_delay(self) -> None:
         # Arrange
-        memory = a_voice_ram()
-        dsp = keyed_on(memory)
-        dsp.write(echo.REG_ESA, 0x40)
-        dsp.write(echo.REG_EDL, 0x01)
+        dsp = keyed_on(a_voice_ram())
 
         # Act
-        dsp.render(64)
+        rendered = dsp.render(3)
 
         # Assert
-        self.assertEqual(set(memory.data[0x4000:0x4100]), {0})
+        self.assertEqual(set(rendered), {0})
 
-    def test_echo_writes_reach_memory_once_it_is_enabled(self) -> None:
+    def test_a_voice_reports_its_envelope_while_it_plays(self) -> None:
         # Arrange
-        memory = a_voice_ram()
-        dsp = keyed_on(memory)
-        dsp.write(echo.REG_ESA, 0x40)
-        dsp.write(echo.REG_EDL, 0x01)
-        dsp.write(core.REG_EON, 0x01)
-        dsp.write(state.REG_FLG, 0x00)
+        dsp = keyed_on(a_voice_ram())
+
+        # Act
+        dsp.render(32)
+
+        # Assert
+        self.assertGreater(dsp.read(ENVX), 0)
+
+    def test_reaching_the_end_of_a_sample_sets_the_end_flag(self) -> None:
+        # Arrange
+        dsp = keyed_on(a_voice_ram(blocks=2))
 
         # Act
         dsp.render(200)
 
         # Assert
-        self.assertNotEqual(set(memory.data[0x4000:0x4100]), {0})
+        self.assertEqual(dsp.read(ENDX) & 0x01, 0x01)
 
+    def test_the_same_setup_renders_the_same_audio_twice(self) -> None:
+        # Arrange
+        first = keyed_on(a_voice_ram()).render(48)
 
-class SuppliedKernelTest(unittest.TestCase):
-    def a_part(self, **options: Any) -> Any:
-        return core.Chip(Memory(), **options)
+        # Act
+        second = keyed_on(a_voice_ram()).render(48)
 
-    def test_a_part_built_with_no_kernel_uses_the_published_one(self) -> None:
-        self.assertIs(self.a_part().gaussian, tables.GAUSSIAN)
-
-    def test_a_supplied_kernel_reaches_the_part(self) -> None:
-        supplied = list(tables.GAUSSIAN)
-
-        found = self.a_part(gaussian=supplied).gaussian
-
-        self.assertEqual(found, tables.GAUSSIAN)
-
-    def test_two_parts_do_not_share_one_kernel(self) -> None:
-        first = self.a_part(gaussian=list(tables.GAUSSIAN))
-
-        second = self.a_part()
-
-        self.assertIsNot(first.gaussian, second.gaussian)
-
-    def test_supplying_one_leaves_the_published_table_alone(self) -> None:
-        held = tuple(tables.GAUSSIAN)
-
-        self.a_part(gaussian=list(tables.GAUSSIAN))
-
-        self.assertEqual(tables.GAUSSIAN, held)
-
-    def test_a_kernel_that_cannot_be_the_parts_is_refused_at_construction(self) -> None:
-        with self.assertRaises(NotAKernel):
-            self.a_part(gaussian=[0] * 512)
-
-    def test_and_the_part_is_not_built(self) -> None:
-        with self.assertRaises(NotAKernel):
-            self.a_part(gaussian=tables.GAUSSIAN[:8])
-
-    def test_a_different_kernel_changes_what_a_voice_interpolates(self) -> None:
-        flat = self.a_part()
-        flat.voices[0].buffer = [0, 0x2000, 0x4000, 0x2000] + [0] * 8
-        flat.voices[0].buffer_position = 0
-        flat.voices[0].interpolation = 0x0800
-
-        with_published = flat._interpolate(flat.voices[0])
-        flat.gaussian = tables.check_kernel(
-            [
-                min(0x7FFF, value + (1 if 256 <= at < 512 else -1))
-                for at, value in enumerate(tables.GAUSSIAN)
-            ]
-        )
-        with_supplied = flat._interpolate(flat.voices[0])
-
-        self.assertNotEqual(with_published, with_supplied)
+        # Assert
+        self.assertEqual(first, second)
 
 
 class WhatTheScheduleWritesTest(unittest.TestCase):
     def changing(self, samples: int = 8) -> dict[int, set[int]]:
         dsp = keyed_on(a_voice_ram())
-        for _ in range(64):
-            dsp.clock()
+        dsp.run(64)
         found: dict[int, set[int]] = {}
         for _ in range(samples * 32):
             before = bytes(dsp.registers)
             phase = dsp.phase
             dsp.clock()
-            after = bytes(dsp.registers)
-            moved = {i for i, (a, b) in enumerate(zip(before, after, strict=True)) if a != b}
+            moved = {
+                i for i, (a, b) in enumerate(zip(before, dsp.registers, strict=True)) if a != b
+            }
             if moved:
                 found.setdefault(phase, set()).update(moved)
         return found
 
     def test_the_part_writes_two_registers_of_its_own_while_a_voice_plays(self) -> None:
-        found = self.changing()
+        # Arrange
+        samples = 8
 
+        # Act
+        found = self.changing(samples)
+
+        # Assert
         self.assertEqual(sorted(found), [3, 4])
 
     def test_the_first_of_them_is_the_output_the_check_names(self) -> None:
-        self.assertEqual(self.changing()[3], {core.V_OUTX})
+        # Arrange
+        samples = 8
+
+        # Act
+        found = self.changing(samples)
+
+        # Assert
+        self.assertEqual(found[3], {OUTX})
 
     def test_and_the_second_is_the_envelope_the_other_check_names(self) -> None:
-        self.assertEqual(self.changing()[4], {core.V_ENVX})
+        # Arrange
+        samples = 8
+
+        # Act
+        found = self.changing(samples)
+
+        # Assert
+        self.assertEqual(found[4], {ENVX})
 
     def test_a_read_is_served_without_regard_to_where_the_sample_is(self) -> None:
+        # Arrange
         dsp = keyed_on(a_voice_ram())
-        for _ in range(64):
-            dsp.clock()
+        dsp.run(64)
+        seen = {dsp.phase: dsp.read(OUTX)}
 
-        seen = {dsp.phase: dsp.read(core.V_OUTX)}
+        # Act
         dsp.clock()
-        seen[dsp.phase] = dsp.read(core.V_OUTX)
 
+        # Assert
+        seen[dsp.phase] = dsp.read(OUTX)
         self.assertEqual(len(seen), 2)
 
 

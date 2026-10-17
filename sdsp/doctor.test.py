@@ -1,25 +1,53 @@
+import hashlib
 import json
-import os
-import re
-import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
-from typing import Any, override
+from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from sdsp import core, doctor, memory  # noqa: E402
+import sdsp  # noqa: E402
+from sdsp import doctor  # noqa: E402
 
-SOURCE = ROOT / "sdsp" / "doctor.py"
-
-VERDICT = re.compile(r"^  (\d+ checks, nothing to report|\d+ of \d+ checks did not pass)$")
+NOWHERE = Path("/nowhere/at/all")
 
 
 class Complaint(Exception):
     pass
+
+
+class WillNotReset:
+    model = "s-dsp"
+
+    def reset(self) -> Any:
+        raise Complaint("the pin did nothing")
+
+
+class Counted:
+    model = "s-dsp"
+
+    def __init__(self, resets: list[str]) -> None:
+        self.part = sdsp.Chip("s-dsp", sdsp.Memory())
+        self.resets = resets
+
+    def reset(self) -> Any:
+        self.resets.append("reset")
+        return self.part.reset()
+
+    def read(self, address: int) -> int:
+        return self.part.read(address)
+
+
+class Zeroed:
+    def read8(self, address: int) -> int:
+        return 0
+
+
+class Clean:
+    memory = Zeroed()
 
 
 def a_finding(
@@ -28,100 +56,167 @@ def a_finding(
     return doctor.Finding(name, ok, detail, advice)
 
 
-def a_corpus(cases: int = 3, reference: str = "snes9x 1.63 SPC_DSP.cpp") -> Path:
+def a_file(text: str) -> Path:
     where = Path(tempfile.mkdtemp()) / "corpus.json"
-    where.write_text(json.dumps({"reference": reference, "cases": [{} for _ in range(cases)]}))
+    where.write_text(text)
     return where
+
+
+def a_corpus(cases: int = 3, reference: str = "snes9x 1.63 SPC_DSP.cpp") -> Path:
+    return a_file(json.dumps({"reference": reference, "cases": [{} for _ in range(cases)]}))
+
+
+def boom(_name: str) -> Any:
+    raise Complaint("the core exploded")
+
+
+def unresettable(_name: str) -> Any:
+    return WillNotReset()
+
+
+def clean(_name: str) -> Any:
+    return Clean()
+
+
+def details(found: list[Any]) -> str:
+    return " ".join(one.detail for one in found)
+
+
+def named(found: list[Any], name: str) -> list[Any]:
+    return [one for one in found if one.name == name]
 
 
 class FindingTest(unittest.TestCase):
     def test_a_finding_says_what_was_checked(self) -> None:
-        self.assertEqual(a_finding(name="the corpus").name, "the corpus")
+        # Arrange
+        name = "the corpus"
+
+        # Act
+        found = a_finding(name=name)
+
+        # Assert
+        self.assertEqual(found.name, "the corpus")
 
     def test_and_whether_it_was_well(self) -> None:
-        self.assertTrue(a_finding(ok=True).ok)
-        self.assertFalse(a_finding(ok=False).ok)
+        # Arrange
+        verdicts = (True, False)
+
+        # Act
+        found = [a_finding(ok=ok).ok for ok in verdicts]
+
+        # Assert
+        self.assertEqual(found, [True, False])
 
     def test_a_healthy_finding_prints_with_a_mark_that_says_so(self) -> None:
-        self.assertIn("ok", a_finding(ok=True).line)
+        # Arrange
+        found = a_finding(ok=True)
+
+        # Act
+        line = found.line
+
+        # Assert
+        self.assertEqual(line, "  ok    something: detail")
 
     def test_and_an_unhealthy_one_prints_differently(self) -> None:
-        self.assertNotIn("ok", a_finding(ok=False).line)
+        # Arrange
+        found = a_finding(ok=False)
+
+        # Act
+        line = found.line
+
+        # Assert
+        self.assertEqual(line, "     !  something: detail")
 
     def test_every_finding_carries_what_it_actually_saw(self) -> None:
-        self.assertIn("240 cases", a_finding(detail="240 cases").line)
+        # Arrange
+        found = a_finding(detail="240 cases")
+
+        # Act
+        line = found.line
+
+        # Assert
+        self.assertIn("240 cases", line)
 
     def test_an_unhealthy_finding_says_what_to_do_about_it(self) -> None:
-        self.assertIn("go and look", a_finding(ok=False, advice="go and look").report)
+        # Arrange
+        found = a_finding(ok=False, advice="go and look")
+
+        # Act
+        report = found.report
+
+        # Assert
+        self.assertEqual(report, "     !  something: detail\n         go and look")
 
     def test_a_healthy_one_carries_no_advice(self) -> None:
-        self.assertEqual(a_finding(ok=True, advice="x").report, a_finding(ok=True).line)
+        # Arrange
+        found = a_finding(ok=True, advice="x")
+
+        # Act
+        report = found.report
+
+        # Assert
+        self.assertEqual(report, a_finding(ok=True).line)
 
     def test_a_finding_prints_as_itself(self) -> None:
-        self.assertIn("something", repr(a_finding()))
+        # Arrange
+        found = a_finding(ok=False)
+
+        # Act
+        printed = repr(found)
+
+        # Assert
+        self.assertEqual(printed, "<Finding something not ok>")
 
 
 class ExamineTest(unittest.TestCase):
-    def test_the_examination_produces_findings(self) -> None:
-        self.assertTrue(doctor.examine())
+    def test_it_reports_the_python_the_package_and_every_part_it_covers(self) -> None:
+        # Arrange
+        expected = {"python", "sdsp", *sdsp.MODELS}
 
-    def test_it_reports_the_python_it_is_running_on(self) -> None:
-        self.assertIn("python", [one.name for one in doctor.examine()])
+        # Act
+        names = {one.name for one in doctor.examine()}
 
-    def test_and_the_version_of_this_package(self) -> None:
-        self.assertIn("sdsp", [one.name for one in doctor.examine()])
-
-    def test_and_one_finding_per_part_it_covers(self) -> None:
-        from sdsp import models
-
-        names = [one.name for one in doctor.examine()]
-
-        for model in models.MODELS:
-            self.assertIn(model, names, model)
+        # Assert
+        self.assertEqual(expected - names, set())
 
     def test_every_finding_carries_a_detail(self) -> None:
-        for one in doctor.examine():
-            self.assertTrue(one.detail, one.name)
+        # Arrange
+        examined = doctor.examine
 
-    def test_a_part_that_will_not_build_is_reported_rather_than_hidden(self) -> None:
-        def boom(_name: str) -> Any:
-            raise Complaint("the core exploded")
+        # Act
+        bare = [one.name for one in examined() if not one.detail]
 
-        found = doctor.examine(build=boom)
+        # Assert
+        self.assertEqual(bare, [])
 
-        self.assertTrue(any(not one.ok for one in found))
+    def test_a_part_that_will_not_build_is_reported_with_what_it_said(self) -> None:
+        # Arrange
+        build = boom
 
-    def test_and_the_report_carries_what_it_said_and_what_kind(self) -> None:
-        def boom(_name: str) -> Any:
-            raise Complaint("the core exploded")
+        # Act
+        found = named(doctor.examine(build=build), "s-dsp")
 
-        text = "\n".join(one.report for one in doctor.examine(build=boom))
+        # Assert
+        self.assertEqual((found[0].ok, found[0].detail), (False, "Complaint: the core exploded"))
 
-        self.assertIn("the core exploded", text)
-        self.assertIn("Complaint", text)
+    def test_a_part_that_builds_is_reported_with_its_shape_and_its_reset_flags(self) -> None:
+        # Arrange
+        examined = doctor.examine
 
-    def test_a_part_that_builds_is_reported_with_its_shape(self) -> None:
-        for one in doctor.examine():
-            if one.name == "s-dsp":
-                self.assertIn("8 voices", one.detail)
+        # Act
+        found = named(examined(), "s-dsp")
 
-    def test_and_with_the_flags_the_reset_left_behind(self) -> None:
-        found = [one for one in doctor.examine() if one.name == "s-dsp"]
-
-        self.assertIn("resets to flags $E0", found[0].detail)
+        # Assert
+        self.assertEqual(
+            found[0].detail, "8 voices, 128 registers, model s-dsp, resets to flags $E0"
+        )
 
     def test_a_part_that_builds_and_will_not_reset_is_reported_as_broken(self) -> None:
         # Arrange
-        class WillNotReset(core.Chip):
-            @override
-            def reset(self) -> Any:
-                raise Complaint("the pin did nothing")
-
-        def build(_name: str) -> Any:
-            return WillNotReset(memory.Memory())
+        build = unresettable
 
         # Act
-        found = [one for one in doctor.examine(build=build) if one.name == "s-dsp"]
+        found = named(doctor.examine(build=build), "s-dsp")
 
         # Assert
         self.assertEqual((found[0].ok, found[0].detail), (False, "Complaint: the pin did nothing"))
@@ -130,226 +225,154 @@ class ExamineTest(unittest.TestCase):
         # Arrange
         resets: list[str] = []
 
-        class Counted(core.Chip):
-            @override
-            def reset(self) -> Any:
-                resets.append("reset")
-                return super().reset()
-
-        def build(_name: str) -> Any:
-            return Counted(memory.Memory())
-
         # Act
-        found = [one for one in doctor.examine(build=build) if one.name == "s-dsp"]
+        found = named(doctor.examine(build=lambda _name: Counted(resets)), "s-dsp")
 
         # Assert
         self.assertEqual((found[0].ok, resets), (True, ["reset"]))
 
 
 class MemoryTest(unittest.TestCase):
-    def test_unwritten_audio_ram_holds_something(self) -> None:
-        for one in doctor.examine():
-            if one.name == "audio ram":
-                self.assertTrue(one.ok)
+    def test_unwritten_audio_ram_holds_something_and_says_what(self) -> None:
+        # Arrange
+        examined = doctor.examine
 
-    def test_and_the_report_says_what_it_actually_held(self) -> None:
-        for one in doctor.examine():
-            if one.name == "audio ram":
-                self.assertIn("holds", one.detail)
+        # Act
+        found = named(examined(), "audio ram")
+
+        # Assert
+        self.assertEqual(
+            (found[0].ok, found[0].detail),
+            (True, "unwritten address 0x1234 holds 0x91, seed 0x5a5a5a5a"),
+        )
 
     def test_memory_that_starts_clean_is_reported_as_a_failure(self) -> None:
-        class Clean:
-            memory = type("Zeroed", (), {"read8": staticmethod(lambda _address: 0)})()
+        # Arrange
+        build = clean
 
-        found = doctor._memory(lambda _name: Clean())
+        # Act
+        found = doctor.check_memory(build)
 
-        self.assertFalse(found.ok)
-        self.assertIn("does not", found.advice or "")
+        # Assert
+        self.assertEqual((found.ok, "does not" in (found.advice or "")), (False, True))
 
     def test_a_read_that_throws_is_reported_rather_than_swallowed(self) -> None:
-        def boom(_name: str) -> Any:
-            raise Complaint("no memory at all")
+        # Arrange
+        build = boom
 
-        found = doctor._memory(boom)
+        # Act
+        found = doctor.check_memory(build)
 
-        self.assertFalse(found.ok)
-        self.assertIn("no memory at all", found.detail)
+        # Assert
+        self.assertEqual((found.ok, found.detail), (False, "Complaint: the core exploded"))
 
 
 class CorpusTest(unittest.TestCase):
     def test_a_corpus_that_is_here_is_counted(self) -> None:
-        found = doctor.examine(corpus=a_corpus(cases=7))
+        # Arrange
+        where = a_corpus(cases=7)
 
-        self.assertIn("7 cases", " ".join(one.detail for one in found))
+        # Act
+        found = doctor.examine(corpus=where)
+
+        # Assert
+        self.assertIn("7 cases", details(found))
 
     def test_and_carries_the_digest_of_the_file_that_is_actually_here(self) -> None:
-        import hashlib
-
+        # Arrange
         where = a_corpus()
 
+        # Act
         found = doctor.examine(corpus=where)
 
-        digest = hashlib.sha256(where.read_bytes()).hexdigest()
-        self.assertIn(digest, " ".join(one.detail for one in found))
+        # Assert
+        self.assertIn(hashlib.sha256(where.read_bytes()).hexdigest(), details(found))
 
     def test_and_names_what_it_was_recorded_from(self) -> None:
-        found = doctor.examine(corpus=a_corpus(reference="somebody else 2.0"))
+        # Arrange
+        where = a_corpus(reference="somebody else 2.0")
 
-        self.assertIn("somebody else 2.0", " ".join(one.detail for one in found))
+        # Act
+        found = doctor.examine(corpus=where)
+
+        # Assert
+        self.assertEqual(named(found, "recorded from")[0].detail, "somebody else 2.0")
 
     def test_a_corpus_that_says_nothing_about_its_source_says_so(self) -> None:
-        where = Path(tempfile.mkdtemp()) / "corpus.json"
-        where.write_text(json.dumps({"cases": [{}]}))
+        # Arrange
+        where = a_file(json.dumps({"cases": [{}]}))
 
+        # Act
         found = doctor.examine(corpus=where)
 
-        self.assertIn("not stated", " ".join(one.detail for one in found))
+        # Assert
+        self.assertEqual(named(found, "recorded from")[0].detail, "not stated")
 
     def test_a_corpus_that_is_not_here_is_a_failure(self) -> None:
-        found = doctor.examine(corpus=Path("/nowhere/at/all.json"))
+        # Arrange
+        where = NOWHERE
 
-        self.assertTrue(any(one.name == "corpus" and not one.ok for one in found))
+        # Act
+        found = doctor.examine(corpus=where)
+
+        # Assert
+        self.assertEqual([one.ok for one in named(found, "corpus")], [False])
 
     def test_a_corpus_that_is_here_and_damaged_is_worse_and_says_so(self) -> None:
-        where = Path(tempfile.mkdtemp()) / "corpus.json"
-        where.write_text("{ this is not json")
+        # Arrange
+        where = a_file("{ this is not json")
 
-        found = doctor.examine(corpus=where)
+        # Act
+        found = named(doctor.examine(corpus=where), "corpus")
 
-        text = " ".join(one.detail for one in found)
-        self.assertIn("not readable as JSON", text)
-        self.assertIn("sha256", text)
+        # Assert
+        self.assertEqual(
+            (found[0].ok, "not readable as JSON" in found[0].detail, "sha256" in found[0].detail),
+            (False, True, True),
+        )
 
     def test_an_empty_corpus_is_a_failure_rather_than_a_pass(self) -> None:
-        where = Path(tempfile.mkdtemp()) / "corpus.json"
-        where.write_text(json.dumps({"cases": []}))
+        # Arrange
+        where = a_file(json.dumps({"cases": []}))
 
+        # Act
         found = doctor.examine(corpus=where)
 
-        self.assertTrue(any(one.name == "corpus" and not one.ok for one in found))
+        # Assert
+        self.assertEqual([one.ok for one in named(found, "corpus")], [False])
 
     def test_the_corpus_it_reads_by_default_is_the_one_in_this_repository(self) -> None:
-        self.assertTrue(doctor.CORPUS.exists())
+        # Arrange
+        expected = ROOT / "conformance" / "corpus.json"
+
+        # Act
+        found = doctor.CORPUS
+
+        # Assert
+        self.assertEqual((found, found.exists()), (expected, True))
 
 
 class DriverTest(unittest.TestCase):
     def test_a_driver_that_is_built_is_reported_as_here(self) -> None:
+        # Arrange
         where = Path(tempfile.mkdtemp()) / "driver"
         where.write_bytes(b"not really a driver")
 
+        # Act
         found = doctor.examine(driver=where)
 
-        self.assertIn("built and here", " ".join(one.detail for one in found))
+        # Assert
+        self.assertEqual(named(found, "reference driver")[0].detail, "built and here")
 
-    def test_one_that_is_not_built_says_what_will_skip(self) -> None:
-        found = doctor.examine(driver=Path("/nowhere/at/all"))
-
-        self.assertIn("skip", " ".join(one.detail for one in found))
-
-    def test_and_that_is_not_treated_as_a_failure(self) -> None:
-        found = doctor.examine(driver=Path("/nowhere/at/all"))
-
-        for one in found:
-            if one.name == "reference driver":
-                self.assertTrue(one.ok)
-
-
-class ReportTest(unittest.TestCase):
-    def test_the_report_has_a_line_for_every_finding(self) -> None:
-        found = doctor.examine()
-
-        self.assertGreaterEqual(len(doctor.report(found)), len(found))
-
-    def test_it_opens_with_something_that_says_what_it_is(self) -> None:
-        self.assertIn("sdsp", doctor.report(doctor.examine())[0])
-
-    def test_an_unhealthy_run_says_how_many_did_not_pass(self) -> None:
-        self.assertIn("1", " ".join(doctor.report([a_finding(ok=False)])))
-
-    def test_a_healthy_run_says_there_is_nothing_to_report(self) -> None:
-        self.assertIn("nothing to report", " ".join(doctor.report([a_finding(ok=True)])))
-
-
-class EntryTest(unittest.TestCase):
-    def test_a_healthy_run_reports_success(self) -> None:
-        self.assertEqual(
-            doctor.main([], examine=lambda **_: [a_finding(ok=True)], say=lambda _: None), 0
-        )
-
-    def test_an_unhealthy_one_reports_failure(self) -> None:
-        self.assertEqual(
-            doctor.main([], examine=lambda **_: [a_finding(ok=False)], say=lambda _: None), 1
-        )
-
-    def test_the_report_is_printed_rather_than_kept(self) -> None:
-        said: list[str] = []
-
-        doctor.main([], examine=lambda **_: [a_finding(ok=True)], say=said.append)
-
-        self.assertTrue(said)
-
-    def test_a_real_run_says_something_about_this_machine(self) -> None:
-        said: list[str] = []
-
-        doctor.main([], say=said.append)
-
-        self.assertIn("sdsp", " ".join(said))
-
-
-class TheDoctorRunsWhereThePackageMightNotImportTest(unittest.TestCase):
-    def test_a_root_that_is_not_on_the_path_is_put_there(self) -> None:
+    def test_one_that_is_not_built_says_what_will_skip_and_is_not_a_failure(self) -> None:
         # Arrange
-        path: list[str] = []
+        where = NOWHERE
 
         # Act
-        added = doctor._reachable(Path("/somewhere"), path)
+        found = named(doctor.examine(driver=where), "reference driver")
 
         # Assert
-        self.assertEqual((added, path), (True, ["/somewhere"]))
-
-    def test_a_root_already_on_the_path_is_left_alone(self) -> None:
-        # Arrange
-        path = ["/somewhere"]
-
-        # Act
-        added = doctor._reachable(Path("/somewhere"), path)
-
-        # Assert
-        self.assertEqual((added, path), (False, ["/somewhere"]))
-
-
-class TheDoctorRunsAsTheReadmeSaysTest(unittest.TestCase):
-    def test_running_it_as_a_file_from_elsewhere_prints_a_report_rather_than_a_traceback(
-        self,
-    ) -> None:
-        # Arrange
-        elsewhere = tempfile.mkdtemp()
-        environ = {name: value for name, value in os.environ.items() if name != "PYTHONPATH"}
-
-        # Act
-        finished = subprocess.run(
-            [sys.executable, str(SOURCE)],
-            capture_output=True,
-            text=True,
-            cwd=elsewhere,
-            env=environ,
-            check=False,
-        )
-
-        # Assert
-        self.assertIn(finished.returncode, (0, 1))
-        self.assertNotIn("Traceback", finished.stderr)
-        self.assertRegex(finished.stdout.splitlines()[-1], VERDICT)
-
-    def test_the_readme_names_the_invocation_that_works(self) -> None:
-        # Arrange
-        readme = ROOT / "README.md"
-
-        # Act
-        said = readme.read_text()
-
-        # Assert
-        self.assertIn("python3 sdsp/doctor.py", said)
+        self.assertEqual((found[0].ok, "skip" in found[0].detail), (True, True))
 
 
 if __name__ == "__main__":

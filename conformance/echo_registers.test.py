@@ -4,6 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import sdsp
 from conformance.register_rig import (
     ECHO,
     ECHO_SPAN,
@@ -11,29 +12,34 @@ from conformance.register_rig import (
     NEWEST_TAP,
     SETTLE,
     UNTOUCHED,
+    Part,
     a_memory,
     a_part,
     at,
+    contents,
     keyed,
     numbers_in,
     own_side_and_other,
     quoted,
     register_map,
 )
-from sdsp import core, echo, state
-from sdsp.memory import Memory
 
 MAP = register_map()
 
+FLG = at("global", "FLG")
+ESA = at("global", "ESA")
+EDL = at("global", "EDL")
+ECHO_WRITES_OFF = 0x20
 
-def echoing(fill: int = 0x24) -> tuple[core.Chip, Memory]:
-    memory = Memory(fill=fill)
-    chip = core.Chip(memory).reset()
-    chip.write(state.REG_FLG, echo.FLG_ECHO_OFF)
-    chip.write(echo.REG_EVOLL, LOUD)
-    chip.write(echo.REG_EVOLL + 0x10, LOUD)
-    chip.write(echo.REG_ESA, ECHO)
-    chip.write(echo.REG_EDL, 1)
+
+def echoing(fill: int = 0x24) -> tuple[Part, sdsp.Memory]:
+    memory = sdsp.Memory(fill=fill)
+    chip = sdsp.Chip("s-dsp", memory).reset()
+    chip.write(FLG, ECHO_WRITES_OFF)
+    chip.write(at("global", "EVOL (L)"), LOUD)
+    chip.write(at("global", "EVOL (R)"), LOUD)
+    chip.write(ESA, ECHO)
+    chip.write(EDL, 1)
     return chip, memory
 
 
@@ -47,37 +53,37 @@ def an_echo_volume_silences(address: int, quote: str) -> list[bool]:
 def fed_back(address: int, value: int) -> bytes:
     chip, memory = echoing()
     chip.write(NEWEST_TAP, LOUD)
-    chip.write(state.REG_FLG, 0)
+    chip.write(FLG, 0)
     chip.write(address, value)
     chip.render(4)
-    return bytes(memory.data[ECHO * 0x100 + 4 : ECHO * 0x100 + 16])
+    return contents(memory, ECHO * 0x100 + 4, 12)
 
 
 def echo_reached(address: int, value: int) -> bool:
     memory = a_memory()
     chip = keyed(a_part(memory))
-    chip.write(echo.REG_ESA, ECHO)
-    chip.write(echo.REG_EDL, 1)
-    chip.write(state.REG_FLG, 0)
+    chip.write(ESA, ECHO)
+    chip.write(EDL, 1)
+    chip.write(FLG, 0)
     chip.write(address, value)
     chip.render(64)
-    return any(memory.data[ECHO * 0x100 : ECHO * 0x100 + ECHO_SPAN])
+    return any(contents(memory, ECHO * 0x100, ECHO_SPAN))
 
 
 def echo_lands(address: int, page: int) -> int:
     chip, memory = echoing(UNTOUCHED)
-    chip.write(state.REG_FLG, 0)
+    chip.write(FLG, 0)
     chip.write(address, page)
     chip.render(4)
-    return max(at for at, value in enumerate(memory.data) if value != UNTOUCHED) >> 8
+    return max(at for at, value in enumerate(contents(memory)) if value != UNTOUCHED) >> 8
 
 
 def echo_written(address: int, value: int) -> int:
     chip, memory = echoing(UNTOUCHED)
-    chip.write(state.REG_FLG, 0)
+    chip.write(FLG, 0)
     chip.write(address, value)
     chip.render(600)
-    return sum(1 for byte in memory.data if byte != UNTOUCHED)
+    return sum(1 for byte in contents(memory) if byte != UNTOUCHED)
 
 
 def filtered(address: int) -> tuple[int, int]:

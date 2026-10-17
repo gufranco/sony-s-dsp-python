@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/sony-s-dsp-python)](https://github.com/gufranco/sony-s-dsp-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-来自真实音乐转储的 **240** 个寄存器状态重放 **23,040** 个采样，与 `snes_spc 0.9.0` 对比 **0** 处不一致，在主机上取得的 **104** 项检查中 **97** 项一致，在手册中定位到 **28** 处引文，**814** 个测试，**100%** 语句与分支覆盖率，无依赖
+来自真实音乐转储的 **240** 个寄存器状态重放 **23,040** 个采样，与 `snes_spc 0.9.0` 对比 **0** 处不一致，在主机上取得的 **104** 项检查中 **97** 项一致，在手册中定位到 **28** 处引文，**817** 个测试，**100%** 语句与分支覆盖率，无依赖
 
 ```python
 import sdsp
@@ -283,7 +283,7 @@ s-dsp s-dsp s-dsp
 | 主机检查 | Shay Green 的 `spc_dsp6` 卡带中 104 项判定有 97 项一致 | 在主机上取得的值 |
 | 插值核 | 长度、形状以及四个抽头之和 | 仅自检，无原始资料 |
 
-[`conformance/hardware.json`](conformance/hardware.json) 记录手册中的每个数字及其页码，[`conformance/hardware.test.py`](conformance/hardware.test.py) 将本包的常量与之比较。手册的文本层在这些数字处中断，因此每张表都是从渲染后的页面图像上读取的。`python3 -m conformance.quotes` 在手册中定位 28 个引用句。
+[`conformance/hardware.json`](conformance/hardware.json) 记录手册中的每个数字及其页码，[`conformance/hardware.test.py`](conformance/hardware.test.py) 将它们与驱动芯片时的实际行为及本包导出的表进行比较。手册的文本层在这些数字处中断，因此每张表都是从渲染后的页面图像上读取的。`python3 -m conformance.quotes` 在手册中定位 28 个引用句。
 
 ### 噪声时钟锁定速率表
 

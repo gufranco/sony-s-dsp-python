@@ -4,6 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import sdsp
 from conformance.register_rig import (
     ECHO,
     ECHO_SPAN,
@@ -20,6 +21,7 @@ from conformance.register_rig import (
     an_entry,
     at,
     consumed,
+    contents,
     each_sample,
     keyed,
     numbers_in,
@@ -27,52 +29,59 @@ from conformance.register_rig import (
     silent,
     voiced,
 )
-from sdsp import core, echo, state
-from sdsp.voice import ENV_ATTACK, ENV_RELEASE
+
+ESA = at("global", "ESA")
+EDL = at("global", "EDL")
+EON = at("global", "EON")
+NON = at("global", "NON")
+KON = at("global", "KON")
+FLG = at("global", "FLG")
+OUTX = at("voice", "OUTX")
 
 
 def keyed_by(address: int, value: int) -> list[int]:
     chip = voiced(a_part(), 0xFF)
     chip.write(address, value)
     chip.render(4)
-    return [voice.index for voice in chip.voices if voice.envelope_mode == ENV_ATTACK]
+    return [voice.index for voice in chip.voices if voice.envelope_mode == sdsp.ENV_ATTACK]
 
 
 def flag_effects(address: int, flags: int) -> tuple[bool, bool, bool, bool]:
     memory = a_memory(fill=UNTOUCHED)
-    chip = keyed(a_part(memory))
-    chip.write(echo.REG_ESA, ECHO)
-    chip.write(echo.REG_EDL, 1)
+    chip = keyed(a_part(memory), 0x03)
+    chip.write(NON, 0x02)
+    chip.write(ESA, ECHO)
+    chip.write(EDL, 1)
     chip.render(SETTLE)
     chip.write(address, flags)
-    rendered = chip.render(64)
-    echoed = memory.data[ECHO * 0x100 : ECHO * 0x100 + ECHO_SPAN]
+    noise = each_sample(chip, 32, lambda: chip.read(chip.voices[1].base + OUTX))
+    rendered = chip.render(32)
     return (
-        chip.voices[0].envelope_mode == ENV_RELEASE,
-        silent(rendered[-32:]),
-        echoed != bytes([UNTOUCHED]) * ECHO_SPAN,
-        chip.noise != 0x4000,
+        chip.voices[0].envelope_mode == sdsp.ENV_RELEASE,
+        silent(rendered),
+        contents(memory, ECHO * 0x100, ECHO_SPAN) != bytes([UNTOUCHED]) * ECHO_SPAN,
+        len(set(noise[-16:])) > 1,
     )
 
 
 def everything_after(address: int, value: int) -> tuple[list[int], bytes, bytes]:
     memory = a_memory()
     chip = keyed(a_part(memory))
-    chip.write(echo.REG_ESA, ECHO)
-    chip.write(core.REG_EON, 0x01)
-    chip.write(echo.REG_EVOLL, LOUD)
+    chip.write(ESA, ECHO)
+    chip.write(EON, 0x01)
+    chip.write(at("global", "EVOL (L)"), LOUD)
     chip.write(NEWEST_TAP, LOUD)
-    chip.write(state.REG_FLG, 0)
+    chip.write(FLG, 0)
     chip.write(address, value)
     rendered = chip.render(64)
     others = chip.registers[:address] + chip.registers[address + 1 :]
-    return rendered, bytes(memory.data), bytes(others)
+    return rendered, contents(memory), bytes(others)
 
 
 def modulated(address: int, pmon: int, modulator_gain: int) -> int:
     chip = voiced(a_part(), 0x01, STEADY, modulator_gain)
     keyed(chip, 0x02)
-    chip.write(core.REG_KON, 0x03)
+    chip.write(KON, 0x03)
     chip.write(address, pmon)
     chip.render(256)
     return consumed(chip.voices[1])
@@ -82,7 +91,7 @@ def noisy(address: int, value: int) -> list[int]:
     chip = keyed(a_part(), 0xFF, QUIET)
     chip.write(address, value)
     chip.render(SETTLE)
-    return [voice.index for voice in chip.voices if chip.read(voice.base + core.V_OUTX)]
+    return [voice.index for voice in chip.voices if chip.read(voice.base + OUTX)]
 
 
 def played_from(address: int, page: int) -> int:
@@ -140,7 +149,7 @@ class GlobalRegisterTest(unittest.TestCase):
         # Assert
         self.assertEqual(
             (sounding > 0, chip.voices[0].envelope_mode, chip.voices[0].envelope),
-            (True, ENV_RELEASE, 0),
+            (True, sdsp.ENV_RELEASE, 0),
         )
 
     def test_the_flag_register_switches_reset_mute_echo_and_noise_clock(self) -> None:

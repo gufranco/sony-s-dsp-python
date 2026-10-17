@@ -8,7 +8,7 @@ English | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md) | [繁�
 [![Release](https://img.shields.io/github/v/release/gufranco/sony-s-dsp-python)](https://github.com/gufranco/sony-s-dsp-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**240** register states from real music dumps replayed for **23,040** samples, **0** failures against `snes_spc 0.9.0`, **97** of **104** checks taken on a console agree, **28** quotes located in the manual, **814** tests, **100%** statement and branch coverage, no dependencies
+**240** register states from real music dumps replayed for **23,040** samples, **0** failures against `snes_spc 0.9.0`, **97** of **104** checks taken on a console agree, **28** quotes located in the manual, **817** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 import sdsp
@@ -283,7 +283,7 @@ There is one model. The S-DSP sits inside the S-SMP audio unit beside the SPC700
 | Console checks | 97 of 104 verdicts in Shay Green's `spc_dsp6` cartridge agree | Values taken on a console |
 | Interpolation kernel | Length, shape and the four-tap sum | Self-check only, no artifact |
 
-[`conformance/hardware.json`](conformance/hardware.json) carries each figure from the manual with its page, and [`conformance/hardware.test.py`](conformance/hardware.test.py) compares the package's constants with them. The manual's text layer stops at the figures, so every table was read off a rendered page image. `python3 -m conformance.quotes` locates 28 quoted sentences in the manual.
+[`conformance/hardware.json`](conformance/hardware.json) carries each figure from the manual with its page, and [`conformance/hardware.test.py`](conformance/hardware.test.py) holds them to what the part does when driven and to the tables the package exports. The manual's text layer stops at the figures, so every table was read off a rendered page image. `python3 -m conformance.quotes` locates 28 quoted sentences in the manual.
 
 ### The noise clock pins the rate table
 

@@ -8,7 +8,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from sdsp import tables  # noqa: E402
+import sdsp  # noqa: E402
 
 HELD: dict[str, Any] = json.loads((ROOT / "conformance" / "carried.json").read_text())
 
@@ -24,60 +24,98 @@ class CarriedTableTest(unittest.TestCase):
         return held
 
     def test_every_pinned_table_is_the_table_that_was_pinned(self) -> None:
+        # Arrange
+        entries = self.entries
+
+        # Act
         wrong = [
             entry["name"]
-            for entry in self.entries
-            if digest_of(getattr(tables, entry["name"])) != entry["sha256"]
+            for entry in entries
+            if digest_of(getattr(sdsp, entry["name"])) != entry["sha256"]
         ]
 
+        # Assert
         self.assertEqual(wrong, [])
 
     def test_every_pinned_table_is_the_length_that_was_pinned(self) -> None:
+        # Arrange
+        entries = self.entries
+
+        # Act
         wrong = [
             entry["name"]
-            for entry in self.entries
-            if len(getattr(tables, entry["name"])) != entry["entries"]
+            for entry in entries
+            if len(getattr(sdsp, entry["name"])) != entry["entries"]
         ]
 
+        # Assert
         self.assertEqual(wrong, [])
 
     def test_a_changed_entry_is_caught(self) -> None:
-        first = self.entries[0]["name"]
-        held = getattr(tables, first)
-        bent = list(held)
+        # Arrange
+        held = getattr(sdsp, self.entries[0]["name"])
+        bent = [*held]
         bent[0] = "changed"
 
-        self.assertNotEqual(digest_of(bent), digest_of(held))
+        # Act
+        found = digest_of(bent)
+
+        # Assert
+        self.assertNotEqual(found, digest_of(held))
 
     def test_a_reordering_that_keeps_the_same_values_is_caught(self) -> None:
-        first = self.entries[0]["name"]
-        held = getattr(tables, first)
-        swapped = list(held)
-        swapped[0], swapped[-1] = swapped[-1], swapped[0]
+        # Arrange
+        held = getattr(sdsp, self.entries[0]["name"])
+        swapped = [held[-1], *held[1:-1], held[0]]
 
-        self.assertNotEqual(digest_of(swapped), digest_of(held))
+        # Act
+        found = digest_of(swapped)
 
-    def test_every_table_the_module_carries_is_pinned(self) -> None:
-        carried = {
-            name
-            for name in dir(tables)
-            if name.isupper()
-            and not name.startswith("_")
-            and isinstance(getattr(tables, name), tuple)
-        }
+        # Assert
+        self.assertNotEqual(found, digest_of(held))
+
+    def test_every_table_the_package_exports_is_pinned(self) -> None:
+        # Arrange
         pinned = {entry["name"] for entry in self.entries}
 
+        # Act
+        carried = {
+            name
+            for name in sdsp.__all__
+            if name.isupper() and isinstance(getattr(sdsp, name), tuple)
+        }
+
+        # Assert
         self.assertEqual(carried - pinned, set())
 
     def test_the_record_says_what_a_digest_here_does_not_claim(self) -> None:
-        self.assertIn("a claim that the table is correct", HELD["whatThisIsNot"].lower())
+        # Arrange
+        said = HELD["whatThisIsNot"]
+
+        # Act
+        found = said.lower()
+
+        # Assert
+        self.assertIn("a claim that the table is correct", found)
 
     def test_the_record_says_why_no_publisher_digest_exists(self) -> None:
-        self.assertIn("publisher", HELD["notStated"])
+        # Arrange
+        said = HELD["notStated"]
+
+        # Act
+        found = "publisher" in said
+
+        # Assert
+        self.assertEqual(found, True)
 
     def test_the_kernel_names_the_open_question_it_belongs_to(self) -> None:
-        kernel = next(entry for entry in self.entries if entry["name"] == "GAUSSIAN")
+        # Arrange
+        entries = self.entries
 
+        # Act
+        kernel = next(entry for entry in entries if entry["name"] == "GAUSSIAN")
+
+        # Assert
         self.assertEqual(kernel["openQuestion"], "gaussian-kernel-is-undocumented")
 
 

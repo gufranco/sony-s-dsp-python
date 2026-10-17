@@ -8,8 +8,8 @@ from typing import Any, override
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from sdsp import core, echo, state, tables
-from sdsp.memory import Memory
+import sdsp
+from conformance.register_rig import Part, at
 
 HERE = Path(__file__).resolve().parent
 FACTS: dict[str, Any] = json.loads((HERE / "hardware.json").read_text())
@@ -29,6 +29,19 @@ LOUD = 0x7F
 
 NOISE_CLOCK = 0x1F
 
+COUNTER_RANGE = 30720
+
+ECHO_WRITES_OFF = 0x20
+
+
+ADSR1 = at("voice", "ADSR (1)")
+ADSR2 = at("voice", "ADSR (2)")
+GAIN = at("voice", "GAIN")
+KON = at("global", "KON")
+KOF = at("global", "KOF")
+NON = at("global", "NON")
+FLG = at("global", "FLG")
+
 
 def _seconds(text: str) -> float:
     value, unit = text.split()
@@ -41,7 +54,7 @@ def _hertz(text: str) -> float:
 
 
 def _attack_seconds(ar: int) -> float:
-    period = tables.COUNTER_RATES[2 * ar + 1]
+    period = sdsp.COUNTER_RATES[2 * ar + 1]
     steps = ATTACK_STEPS if ar < 0xF else 2
     return steps * period / SAMPLE_RATE
 
@@ -56,7 +69,7 @@ def _decay_ticks(target: int) -> int:
 
 
 def _produced(rate: int) -> float:
-    return 0.0 if rate == 0 else SAMPLE_RATE / tables.COUNTER_RATES[rate]
+    return 0.0 if rate == 0 else SAMPLE_RATE / sdsp.COUNTER_RATES[rate]
 
 
 def _within(produced: float, printed: float) -> bool:
@@ -66,12 +79,12 @@ def _within(produced: float, printed: float) -> bool:
 def _implied_ticks() -> list[float]:
     found = []
     for value, row in enumerate(FACTS["envelope"]["decay"]):
-        period = tables.COUNTER_RATES[2 * value + 0x10]
+        period = sdsp.COUNTER_RATES[2 * value + 0x10]
         found.append(_seconds(row["time"]) * SAMPLE_RATE / period)
     for row in FACTS["envelope"]["sustain"]:
         rate = int(row["sr"], 16)
         if rate:
-            found.append(_seconds(row["time"]) * SAMPLE_RATE / tables.COUNTER_RATES[rate])
+            found.append(_seconds(row["time"]) * SAMPLE_RATE / sdsp.COUNTER_RATES[rate])
     return found
 
 
@@ -80,17 +93,17 @@ def _fraction(text: str) -> Fraction:
     return Fraction(whole) - Fraction(part) if part else Fraction(whole)
 
 
-def _keyed(adsr: int, gain: int) -> core.Chip:
-    chip = core.Chip(Memory(fill=0)).reset()
-    chip.write(state.REG_FLG, echo.FLG_ECHO_OFF)
-    chip.write(core.V_ADSR0, adsr)
-    chip.write(core.V_ADSR1, 0)
-    chip.write(core.V_GAIN, gain)
-    chip.write(core.REG_KON, 0x01)
+def _keyed(adsr: int, gain: int) -> Part:
+    chip = sdsp.Chip("s-dsp", sdsp.Memory(fill=0)).reset()
+    chip.write(FLG, ECHO_WRITES_OFF)
+    chip.write(ADSR1, adsr)
+    chip.write(ADSR2, 0)
+    chip.write(GAIN, gain)
+    chip.write(KON, 0x01)
     return chip
 
 
-def _trace(chip: core.Chip, samples: int) -> list[int]:
+def _trace(chip: Part, samples: int) -> list[int]:
     found = []
     for _ in range(samples):
         chip.render(1)
@@ -119,103 +132,75 @@ def _furthest_from(trace: list[int], factor: Fraction) -> Fraction:
 
 def _noise_clock_after(nck: int) -> int:
     chip = _keyed(0, LOUD)
-    chip.write(core.REG_NON, 0x01)
-    chip.write(state.REG_FLG, echo.FLG_ECHO_OFF | nck)
+    chip.write(NON, 0x01)
+    chip.write(FLG, ECHO_WRITES_OFF | nck)
     chip.render(SETTLE)
-    return chip.read(state.REG_FLG) & NOISE_CLOCK
+    return chip.read(FLG) & NOISE_CLOCK
 
 
 class DocumentTest(unittest.TestCase):
     def test_the_document_is_pinned_by_digest(self) -> None:
+        # Arrange
         document = FACTS["documents"]["developmentManual"]
 
-        self.assertEqual(len(document["sha256"]), 64)
+        # Act
+        digest = document["sha256"]
+
+        # Assert
+        self.assertEqual(len(digest), 64)
 
     def test_what_the_manual_does_not_state_is_recorded_rather_than_filled_in(self) -> None:
-        stated = FACTS["notStated"]
+        # Arrange
+        facts = FACTS
 
+        # Act
+        stated = facts["notStated"]
+
+        # Assert
         self.assertGreaterEqual(len(stated), 5)
 
     def test_every_table_names_the_page_it_was_read_from(self) -> None:
+        # Arrange
         sections = ("registerMap", "envelope", "gain", "noiseClock")
 
+        # Act
         missing = [name for name in sections if not FACTS[name].get("pdfPage")]
 
+        # Assert
         self.assertEqual(missing, [])
 
 
 class RegisterMapTest(unittest.TestCase):
-    @override
-    def setUp(self) -> None:
-        self.voice = {
-            row["register"]: int(row["offset"], 16) for row in FACTS["registerMap"]["voice"]
-        }
-        self.globals = {
-            row["register"]: int(row["address"], 16) for row in FACTS["registerMap"]["global"]
-        }
-
-    def test_every_voice_offset_this_model_names_is_where_the_manual_puts_it(self) -> None:
-        wrong = [
-            (name, offset, mine)
-            for name, offset, mine in (
-                ("VOL (L)", self.voice["VOL (L)"], core.V_VOLL),
-                ("P (L)", self.voice["P (L)"], core.V_PITCHL),
-                ("P (H)", self.voice["P (H)"], core.V_PITCHH),
-                ("SRCN", self.voice["SRCN"], core.V_SRCN),
-                ("ADSR (1)", self.voice["ADSR (1)"], core.V_ADSR0),
-                ("ADSR (2)", self.voice["ADSR (2)"], core.V_ADSR1),
-                ("GAIN", self.voice["GAIN"], core.V_GAIN),
-                ("ENVX", self.voice["ENVX"], core.V_ENVX),
-                ("OUTX", self.voice["OUTX"], core.V_OUTX),
-            )
-            if offset != mine
-        ]
-
-        self.assertEqual(wrong, [])
-
-    def test_every_global_address_this_model_names_is_where_the_manual_puts_it(self) -> None:
-        # Arrange
-        named = (
-            ("MVOL (L)", echo.REG_MVOLL),
-            ("EVOL (L)", echo.REG_EVOLL),
-            ("KON", core.REG_KON),
-            ("KOF", core.REG_KOFF),
-            ("FLG", state.REG_FLG),
-            ("ENDX", core.REG_ENDX),
-            ("EFB", echo.REG_EFB),
-            ("PMON", core.REG_PMON),
-            ("NON", core.REG_NON),
-            ("EON", core.REG_EON),
-            ("DIR", core.REG_DIR),
-            ("ESA", echo.REG_ESA),
-            ("EDL", echo.REG_EDL),
-        )
-
-        # Act
-        wrong = [(name, mine) for name, mine in named if self.globals[name] != mine]
-
-        # Assert
-        self.assertEqual(wrong, [])
-
     def test_the_voices_are_the_number_and_the_stride_the_manual_gives(self) -> None:
         # Arrange
         stride = FACTS["registerMap"]["voiceStride"]
 
         # Act
-        printed = (stride["voices"], stride["stride"])
+        voices = sdsp.Chip("s-dsp").voices
 
         # Assert
-        self.assertEqual(printed, (state.VOICE_COUNT, 0x10))
+        self.assertEqual(
+            (len(voices), {after.base - before.base for before, after in pairwise(voices)}),
+            (stride["voices"], {stride["stride"]}),
+        )
 
     def test_the_filter_is_eight_taps_starting_where_the_manual_says(self) -> None:
         # Arrange
-        coefficients = FACTS["registerMap"]["filterCoefficients"]["addresses"]
+        coefficients = [
+            int(one, 16) for one in FACTS["registerMap"]["filterCoefficients"]["addresses"]
+        ]
 
         # Act
-        printed = (len(coefficients), int(coefficients[0], 16))
+        voices = sdsp.Chip("s-dsp").voices
 
         # Assert
-        self.assertEqual(printed, (8, echo.REG_FIR))
+        self.assertEqual(
+            (
+                len(coefficients),
+                {at - voice.base for at, voice in zip(coefficients, voices, strict=True)},
+            ),
+            (8, {coefficients[0]}),
+        )
 
     def test_the_map_covers_the_whole_register_file(self) -> None:
         # Arrange
@@ -225,102 +210,171 @@ class RegisterMapTest(unittest.TestCase):
         highest = max(int(row["address"], 16) for row in rows)
 
         # Assert
-        self.assertLess(highest, state.REGISTER_COUNT)
+        self.assertLess(highest, len(sdsp.Chip("s-dsp").registers))
 
     def test_the_registers_the_dsp_writes_to_are_named(self) -> None:
+        # Arrange
         written = FACTS["registerMap"]["writtenByTheDsp"]["registers"]
 
-        self.assertEqual(sorted(written), ["ENDX", "ENVX", "OUTX"])
+        # Act
+        names = sorted(written)
+
+        # Assert
+        self.assertEqual(names, ["ENDX", "ENVX", "OUTX"])
 
 
 class AttackTest(unittest.TestCase):
     def test_every_printed_attack_time_is_what_this_model_takes(self) -> None:
+        # Arrange
+        rows = FACTS["envelope"]["attack"]
+
+        # Act
         wrong = [
             (row["ar"], row["time"], round(_attack_seconds(int(row["ar"], 16)) * 1000, 2))
-            for row in FACTS["envelope"]["attack"]
+            for row in rows
             if abs(_attack_seconds(int(row["ar"], 16)) - _seconds(row["time"]))
             > max(_seconds(row["time"]) * 0.03, 0.0006)
         ]
 
+        # Assert
         self.assertEqual(wrong, [])
 
     def test_that_check_covered_every_attack_rate(self) -> None:
-        covered = len(FACTS["envelope"]["attack"])
+        # Arrange
+        rows = FACTS["envelope"]["attack"]
 
+        # Act
+        covered = len(rows)
+
+        # Assert
         self.assertEqual(covered, 16)
 
     def test_the_slowest_attack_takes_the_four_seconds_the_manual_prints(self) -> None:
-        slowest = _attack_seconds(0)
+        # Arrange
+        rate = 0
 
+        # Act
+        slowest = _attack_seconds(rate)
+
+        # Assert
         self.assertAlmostEqual(slowest, 4.096, places=3)
 
     def test_the_fastest_attack_is_the_one_the_manual_prints_as_zero(self) -> None:
-        fastest = _attack_seconds(0xF)
+        # Arrange
+        rate = 0xF
 
+        # Act
+        fastest = _attack_seconds(rate)
+
+        # Assert
         self.assertLess(fastest, 0.001)
 
 
 class NoiseClockTest(unittest.TestCase):
     def test_every_printed_noise_frequency_is_what_this_model_produces(self) -> None:
+        # Arrange
+        rows = FACTS["noiseClock"]["rows"]
+
+        # Act
         wrong = [
             (row["nck"], row["frequency"], round(_produced(int(row["nck"], 16)), 1))
-            for row in FACTS["noiseClock"]["rows"]
+            for row in rows
             if not _within(_produced(int(row["nck"], 16)), _hertz(row["frequency"]))
         ]
 
+        # Assert
         self.assertEqual(wrong, [])
 
     def test_that_check_covered_every_rate(self) -> None:
-        covered = len(FACTS["noiseClock"]["rows"])
+        # Arrange
+        rows = FACTS["noiseClock"]["rows"]
 
-        self.assertEqual((covered, len(tables.COUNTER_RATES)), (32, 32))
+        # Act
+        covered = len(rows)
+
+        # Assert
+        self.assertEqual((covered, len(sdsp.COUNTER_RATES)), (32, 32))
 
     def test_the_tolerance_is_tight_enough_to_catch_a_table_that_moved(self) -> None:
+        # Arrange
         printed = _hertz(FACTS["noiseClock"]["rows"][1]["frequency"])
 
-        doubled = _within(SAMPLE_RATE / (tables.COUNTER_RATES[1] * 2), printed)
+        # Act
+        doubled = _within(SAMPLE_RATE / (sdsp.COUNTER_RATES[1] * 2), printed)
 
-        self.assertFalse(doubled)
+        # Assert
+        self.assertEqual(doubled, False)
 
     def test_the_zero_row_is_a_clock_that_never_fires(self) -> None:
-        never = tables.COUNTER_RATES[0]
+        # Arrange
+        rates = sdsp.COUNTER_RATES
 
-        self.assertGreater(never, tables.COUNTER_RANGE)
+        # Act
+        never = rates[0]
+
+        # Assert
+        self.assertGreater(never, COUNTER_RANGE)
 
     def test_the_fastest_row_fires_every_sample(self) -> None:
-        fastest = tables.COUNTER_RATES[0x1F]
+        # Arrange
+        rates = sdsp.COUNTER_RATES
 
+        # Act
+        fastest = rates[0x1F]
+
+        # Assert
         self.assertEqual(fastest, 1)
 
 
 class ExponentialTest(unittest.TestCase):
     def test_every_printed_figure_implies_the_same_length_of_fall(self) -> None:
+        # Arrange
         implied = _implied_ticks()
 
+        # Act
         spread = (max(implied) - min(implied)) / (sum(implied) / len(implied))
 
+        # Assert
         self.assertLess(spread, 0.05)
 
     def test_that_check_covered_both_columns_in_full(self) -> None:
-        covered = len(_implied_ticks())
+        # Arrange
+        implied = _implied_ticks()
 
+        # Act
+        covered = len(implied)
+
+        # Assert
         self.assertEqual(covered, 8 + 31)
 
     def test_the_recovered_endpoint_is_recorded_rather_than_built_in(self) -> None:
-        entry = next(
-            item for item in DIVERGENCES["divergences"] if item["id"] == "unstated-decay-endpoint"
-        )
+        # Arrange
+        entries = DIVERGENCES["divergences"]
 
+        # Act
+        entry = next(item for item in entries if item["id"] == "unstated-decay-endpoint")
+
+        # Assert
         self.assertIn("590", entry["referenceDoes"])
 
     def test_the_model_reaches_the_first_sustain_level_where_the_manual_puts_it(self) -> None:
+        # Arrange
         ratio = FACTS["envelope"]["sustainLevel"][0]["ratio"]
 
-        self.assertEqual((ratio, _decay_ticks((FULL + 1) // 8 - 1)), ("1/8", 440))
+        # Act
+        ticks = _decay_ticks((FULL + 1) // 8 - 1)
+
+        # Assert
+        self.assertEqual((ratio, ticks), ("1/8", 440))
 
     def test_a_slower_rate_always_takes_longer(self) -> None:
-        periods = [tables.COUNTER_RATES[rate] for rate in range(1, 32)]
+        # Arrange
+        rates = range(1, 32)
 
+        # Act
+        periods = [sdsp.COUNTER_RATES[rate] for rate in rates]
+
+        # Assert
         self.assertEqual(periods, sorted(periods, reverse=True))
 
 
@@ -330,25 +384,43 @@ class DivergenceTest(unittest.TestCase):
         self.entries: list[dict[str, Any]] = DIVERGENCES["divergences"]
 
     def test_each_entry_says_which_source_the_package_follows(self) -> None:
+        # Arrange
         allowed = {"document", "reference", "neither"}
 
-        self.assertEqual({entry["packageFollows"] for entry in self.entries} - allowed, set())
+        # Act
+        followed = {entry["packageFollows"] for entry in self.entries}
+
+        # Assert
+        self.assertEqual(followed - allowed, set())
 
     def test_each_entry_says_what_would_settle_it(self) -> None:
-        missing = [entry["id"] for entry in self.entries if not entry.get("wouldSettleIt")]
+        # Arrange
+        entries = self.entries
 
+        # Act
+        missing = [entry["id"] for entry in entries if not entry.get("wouldSettleIt")]
+
+        # Assert
         self.assertEqual(missing, [])
 
     def test_the_reference_being_an_emulator_is_recorded_as_a_limit(self) -> None:
-        entry = next(
-            item for item in self.entries if item["id"] == "the-audio-rests-on-an-emulator"
-        )
+        # Arrange
+        entries = self.entries
 
+        # Act
+        entry = next(item for item in entries if item["id"] == "the-audio-rests-on-an-emulator")
+
+        # Assert
         self.assertEqual(entry["severity"], "high")
 
     def test_the_gaussian_kernel_is_recorded_as_undocumented(self) -> None:
-        named = {entry["id"] for entry in self.entries}
+        # Arrange
+        entries = self.entries
 
+        # Act
+        named = {entry["id"] for entry in entries}
+
+        # Assert
         self.assertIn("gaussian-kernel-is-undocumented", named)
 
 
@@ -381,7 +453,7 @@ class PrintedStepTest(unittest.TestCase):
         step = _fraction(FACTS["envelope"]["steps"]["keyOffStep"]) * FULL_SCALE
 
         # Act
-        found = _then(LOUD, (core.REG_KOFF, 0x01), 300)
+        found = _then(LOUD, (KOF, 0x01), 300)
 
         # Assert
         self.assertEqual(_falls(found), {step})
@@ -394,9 +466,9 @@ class PrintedStepTest(unittest.TestCase):
 
         # Act
         found = [
-            _then(0x00, (core.V_GAIN, 0xDF), 40),
-            _then(LOUD, (core.V_GAIN, 0x9F), 40),
-            _then(LOUD, (core.V_GAIN, 0xBF), 200),
+            _then(0x00, (GAIN, 0xDF), 40),
+            _then(LOUD, (GAIN, 0x9F), 40),
+            _then(LOUD, (GAIN, 0xBF), 200),
         ]
 
         # Assert

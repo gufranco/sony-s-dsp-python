@@ -4,7 +4,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import sdsp
 from conformance.register_rig import (
+    BRR_BLOCK_BYTES,
     DIRECTORY,
     SHORT,
     SOURCE,
@@ -24,9 +26,6 @@ from conformance.register_rig import (
     side_of,
     silent,
 )
-from sdsp import core, state
-from sdsp.memory import Memory
-from sdsp.voice import Voice
 
 
 class RecordTest(unittest.TestCase):
@@ -86,14 +85,14 @@ class TextTest(unittest.TestCase):
 class MemoryLayoutTest(unittest.TestCase):
     def test_the_last_block_of_a_sample_carries_the_end_and_loop_flags(self) -> None:
         # Arrange
-        memory = Memory(fill=0)
+        memory = sdsp.Memory(fill=0)
 
         # Act
         a_sample(memory, 0x0300, lambda: 0x11, 3)
 
         # Assert
         self.assertEqual(
-            [memory.read8(0x0300 + block * core.BRR_BLOCK_BYTES) for block in range(3)],
+            [memory.read8(0x0300 + block * BRR_BLOCK_BYTES) for block in range(3)],
             [0xC0, 0xC0, 0xC3],
         )
 
@@ -117,22 +116,27 @@ class PartTest(unittest.TestCase):
         chip = a_part(memory)
 
         # Assert
-        self.assertEqual((chip.read(state.REG_FLG), chip.read(core.REG_DIR)), (0x20, DIRECTORY))
+        self.assertEqual(
+            (chip.read(at("global", "FLG")), chip.read(at("global", "DIR"))), (0x20, DIRECTORY)
+        )
 
-    def test_keying_arms_only_the_voices_named(self) -> None:
+    def test_keying_starts_only_the_voices_named(self) -> None:
         # Arrange
-        chip = a_part()
+        chip = keyed(a_part(), 0x05)
 
         # Act
-        keyed(chip, 0x05)
+        chip.render(3)
 
         # Assert
-        self.assertEqual(chip.new_kon, 0x05)
+        self.assertEqual(
+            [voice.index for voice in chip.voices if voice.envelope_mode == sdsp.ENV_ATTACK],
+            [0, 2],
+        )
 
     def test_a_voice_one_block_and_two_pairs_in_has_consumed_twenty_samples(self) -> None:
         # Arrange
-        voice = Voice(0)
-        voice.brr_address = SOURCE + core.BRR_BLOCK_BYTES
+        voice = sdsp.Voice(0)
+        voice.brr_address = SOURCE + BRR_BLOCK_BYTES
         voice.brr_offset = 3
 
         # Act
@@ -166,7 +170,7 @@ class PartTest(unittest.TestCase):
         memory = a_memory()
 
         # Act
-        header = memory.read8(SHORT + core.BRR_BLOCK_BYTES)
+        header = memory.read8(SHORT + BRR_BLOCK_BYTES)
 
         # Assert
         self.assertEqual(header, 0xC3)
@@ -195,7 +199,7 @@ class SilenceTest(unittest.TestCase):
 
     def test_zeroing_the_left_voice_volume_silences_the_left_channel_alone(self) -> None:
         # Arrange
-        address = core.V_VOLL
+        address = at("voice", "VOL (L)")
 
         # Act
         found = a_volume_silences(address, "Left")

@@ -9,7 +9,7 @@ from typing import Any, override
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def _reachable(root: Path = ROOT, path: list[str] | None = None) -> bool:
+def reachable(root: Path = ROOT, path: list[str] | None = None) -> bool:
     where = sys.path if path is None else path
     if str(root) in where:
         return False
@@ -17,7 +17,7 @@ def _reachable(root: Path = ROOT, path: list[str] | None = None) -> bool:
     return True
 
 
-_reachable()
+reachable()
 
 from sdsp import environment, memory, models, state  # noqa: E402
 from sdsp.version import VERSION  # noqa: E402
@@ -92,7 +92,7 @@ def _part(name: str, build: Callable[[str], Any]) -> "Finding":
     )
 
 
-def _memory(build: Callable[[str], Any]) -> "Finding":
+def check_memory(build: Callable[[str], Any]) -> "Finding":
     try:
         chip = build("s-dsp")
         held = chip.memory.read8(UNWRITTEN)
@@ -161,7 +161,7 @@ def examine(
 ) -> list["Finding"]:
     found = [_python(), _package()]
     found.extend(_part(name, build) for name in sorted(models.MODELS))
-    found.append(_memory(build))
+    found.append(check_memory(build))
     found.extend(_corpus(corpus))
     found.append(_driver(driver))
     return found

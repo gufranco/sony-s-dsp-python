@@ -4,13 +4,40 @@ import re
 from collections.abc import Callable
 from functools import cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
-from sdsp import core, echo, state
-from sdsp.memory import Memory
-from sdsp.voice import Voice
+import sdsp
 
 RECORD = Path(__file__).resolve().parent / "hardware.json"
+
+
+class Store(Protocol):
+    def read8(self, address: int) -> int: ...
+
+    def write8(self, address: int, value: int) -> None: ...
+
+
+class Part(Protocol):
+    model: str
+    memory: Store
+    registers: bytearray
+    voices: list[sdsp.Voice]
+    phase: int
+    rendered: list[int]
+    gaussian: tuple[int, ...]
+
+    def read(self, address: int) -> int: ...
+
+    def write(self, address: int, value: int) -> None: ...
+
+    def reset(self) -> "Part": ...
+
+    def clock(self) -> None: ...
+
+    def run(self, clocks: int) -> None: ...
+
+    def render(self, samples: int) -> list[int]: ...
+
 
 SOURCE = 0x1000
 SOURCE_BLOCKS = 128
@@ -26,7 +53,19 @@ UNITY_PITCH = 0x10
 SETTLE = 16
 SIDES = {"Left": 0, "Right": 1, "L": 0, "R": 1}
 NUMBERS = {SOURCE: 0, QUIET: 1, STEADY: 2, SHORT: 3}
-NEWEST_TAP = echo.REG_FIR + 0x70
+BRR_BLOCK_BYTES = 9
+FIR = 0x0F
+NEWEST_TAP = FIR + 0x70
+VOLL = 0x00
+PITCHH = 0x03
+SRCN = 0x04
+GAIN = 0x07
+MVOLL = 0x0C
+MVOLR = 0x1C
+KON = 0x4C
+DIR = 0x5D
+FLG = 0x6C
+ECHO_WRITES_OFF = 0x20
 
 
 @cache
@@ -60,21 +99,25 @@ def side_of(text: str) -> int:
     return SIDES[re.findall(r"\b(Left|Right|L|R)\b", text)[0]]
 
 
-def a_sample(memory: Memory, start: int, data: Callable[[], int], blocks: int = 2) -> None:
+def a_sample(memory: sdsp.Memory, start: int, data: Callable[[], int], blocks: int = 2) -> None:
     for block in range(blocks):
-        base = start + block * core.BRR_BLOCK_BYTES
+        base = start + block * BRR_BLOCK_BYTES
         memory.write8(base, 0xC3 if block == blocks - 1 else 0xC0)
-        for offset in range(1, core.BRR_BLOCK_BYTES):
+        for offset in range(1, BRR_BLOCK_BYTES):
             memory.write8(base + offset, data())
 
 
-def an_entry(memory: Memory, page: int, number: int, start: int) -> None:
+def contents(memory: sdsp.Memory, start: int = 0, length: int = 0x10000) -> bytes:
+    return bytes(memory.read8(address) for address in range(start, start + length))
+
+
+def an_entry(memory: sdsp.Memory, page: int, number: int, start: int) -> None:
     for index, value in enumerate(start.to_bytes(2, "little") * 2):
         memory.write8(page * 0x100 + number * 4 + index, value)
 
 
-def a_memory(fill: int = 0) -> Memory:
-    memory = Memory(fill=fill)
+def a_memory(fill: int = 0) -> sdsp.Memory:
+    memory = sdsp.Memory(fill=fill)
     rng = random.Random(7)
     a_sample(memory, SOURCE, lambda: rng.randrange(256), SOURCE_BLOCKS)
     a_sample(memory, QUIET, lambda: 0)
@@ -85,33 +128,33 @@ def a_memory(fill: int = 0) -> Memory:
     return memory
 
 
-def a_part(memory: Memory | None = None) -> core.Chip:
-    chip = core.Chip(a_memory() if memory is None else memory).reset()
-    chip.write(core.REG_DIR, DIRECTORY)
-    chip.write(echo.REG_MVOLL, LOUD)
-    chip.write(echo.REG_MVOLL + 0x10, LOUD)
-    chip.write(state.REG_FLG, echo.FLG_ECHO_OFF)
+def a_part(memory: sdsp.Memory | None = None) -> Part:
+    chip = sdsp.Chip("s-dsp", a_memory() if memory is None else memory).reset()
+    chip.write(DIR, DIRECTORY)
+    chip.write(MVOLL, LOUD)
+    chip.write(MVOLR, LOUD)
+    chip.write(FLG, ECHO_WRITES_OFF)
     return chip
 
 
-def voiced(chip: core.Chip, voices: int, source: int = SOURCE, gain: int = LOUD) -> core.Chip:
+def voiced(chip: Part, voices: int, source: int = SOURCE, gain: int = LOUD) -> Part:
     for voice in chip.voices:
         if voices & voice.bit:
-            chip.write(voice.base + core.V_VOLL, LOUD)
-            chip.write(voice.base + core.V_VOLL + 1, LOUD)
-            chip.write(voice.base + core.V_PITCHH, UNITY_PITCH)
-            chip.write(voice.base + core.V_SRCN, NUMBERS[source])
-            chip.write(voice.base + core.V_GAIN, gain)
+            chip.write(voice.base + VOLL, LOUD)
+            chip.write(voice.base + VOLL + 1, LOUD)
+            chip.write(voice.base + PITCHH, UNITY_PITCH)
+            chip.write(voice.base + SRCN, NUMBERS[source])
+            chip.write(voice.base + GAIN, gain)
     return chip
 
 
-def keyed(chip: core.Chip, voices: int = 0x01, source: int = SOURCE, gain: int = LOUD) -> core.Chip:
-    voiced(chip, voices, source, gain).write(core.REG_KON, voices)
+def keyed(chip: Part, voices: int = 0x01, source: int = SOURCE, gain: int = LOUD) -> Part:
+    voiced(chip, voices, source, gain).write(KON, voices)
     return chip
 
 
-def consumed(voice: Voice) -> int:
-    blocks = (voice.brr_address - SOURCE) // core.BRR_BLOCK_BYTES
+def consumed(voice: sdsp.Voice) -> int:
+    blocks = (voice.brr_address - SOURCE) // BRR_BLOCK_BYTES
     return blocks * 16 + (voice.brr_offset - 1) * 2
 
 
@@ -119,7 +162,7 @@ def silent(samples: list[int]) -> bool:
     return set(samples) == {0}
 
 
-def each_sample(chip: core.Chip, samples: int, look: Callable[[], int]) -> list[int]:
+def each_sample(chip: Part, samples: int, look: Callable[[], int]) -> list[int]:
     found = []
     for _ in range(samples):
         chip.render(1)
@@ -127,7 +170,7 @@ def each_sample(chip: core.Chip, samples: int, look: Callable[[], int]) -> list[
     return found
 
 
-def moved(chip: core.Chip, clocks: int) -> set[int]:
+def moved(chip: Part, clocks: int) -> set[int]:
     found: set[int] = set()
     for _ in range(clocks):
         before = bytes(chip.registers)

@@ -27,10 +27,10 @@ from conformance.register_rig import (
     silent,
     voiced,
 )
-from sdsp import core
 
 FACTS = record()
 MAP = register_map()
+KON = at("global", "KON")
 
 
 def progress(low: int, high: int, pitch: int) -> int:
@@ -45,7 +45,7 @@ def enveloped(first: int, second: int, adsr: tuple[int, int]) -> int:
     chip = voiced(a_part(), 0x01)
     chip.write(first, adsr[0])
     chip.write(second, adsr[1])
-    chip.write(core.REG_KON, 0x01)
+    chip.write(KON, 0x01)
     chip.render(200)
     return chip.voices[0].envelope
 
@@ -59,8 +59,8 @@ def designated(gain: int, envx: int, value: int) -> int:
 
 def output_trace(outx: int, volume: int, gain: int) -> list[int]:
     chip = keyed(a_part(), gain=gain)
-    chip.write(core.V_VOLL, volume)
-    chip.write(core.V_VOLL + 1, volume)
+    chip.write(at("voice", "VOL (L)"), volume)
+    chip.write(at("voice", "VOL (R)"), volume)
     return each_sample(chip, 64, lambda: chip.read(outx))
 
 
@@ -186,7 +186,7 @@ class VoiceRegisterTest(unittest.TestCase):
         chip = voiced(a_part(), 0xFF)
         for voice, value in enumerate(values):
             chip.write(voice * stride["stride"] + gain, value)
-        chip.write(core.REG_KON, 0xFF)
+        chip.write(KON, 0xFF)
 
         # Act
         chip.render(SETTLE)

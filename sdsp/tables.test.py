@@ -1,152 +1,274 @@
 import sys
 import unittest
+from itertools import pairwise
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from sdsp import tables
-from sdsp.errors import NotAKernel
+import sdsp
+
+COUNTER_RANGE = 30720
+
+KERNEL_LENGTH = 512
+
+UNIT = 2048
+
+
+def taps_at(offset: int) -> tuple[int, int, int, int]:
+    kernel = sdsp.GAUSSIAN
+    return (kernel[255 - offset], kernel[511 - offset], kernel[256 + offset], kernel[offset])
+
+
+def refusal(table: list[int] | tuple[int, ...]) -> str:
+    try:
+        sdsp.check_kernel(table)
+    except sdsp.NotAKernel as error:
+        return str(error)
+    return ""
+
+
+def changed(at: int, value: int) -> list[int]:
+    table = list(sdsp.GAUSSIAN)
+    table[at] = value
+    return table
 
 
 class GaussianTest(unittest.TestCase):
     def test_the_kernel_is_a_quarter_of_the_curve(self) -> None:
-        self.assertEqual(len(tables.GAUSSIAN), 512)
+        # Arrange
+        kernel = sdsp.GAUSSIAN
+
+        # Act
+        found = len(kernel)
+
+        # Assert
+        self.assertEqual(found, KERNEL_LENGTH)
 
     def test_the_kernel_rises_to_its_peak_at_the_end(self) -> None:
-        self.assertEqual(tables.GAUSSIAN[-1], max(tables.GAUSSIAN))
+        # Arrange
+        kernel = sdsp.GAUSSIAN
+
+        # Act
+        peak = max(kernel)
+
+        # Assert
+        self.assertEqual(kernel[-1], peak)
 
     def test_the_kernel_starts_at_nothing(self) -> None:
-        self.assertEqual(tables.GAUSSIAN[0], 0)
+        # Arrange
+        kernel = sdsp.GAUSSIAN
+
+        # Act
+        first = kernel[0]
+
+        # Assert
+        self.assertEqual(first, 0)
 
     def test_the_kernel_never_decreases(self) -> None:
-        falling = [
-            index
-            for index, (first, second) in enumerate(
-                zip(tables.GAUSSIAN, tables.GAUSSIAN[1:], strict=False)
-            )
-            if second < first
-        ]
+        # Arrange
+        kernel = sdsp.GAUSSIAN
 
+        # Act
+        falling = [index for index, (one, two) in enumerate(pairwise(kernel)) if two < one]
+
+        # Assert
         self.assertEqual(falling, [])
 
     def test_the_four_taps_of_any_position_sum_to_one_unit(self) -> None:
-        for offset in range(256):
-            taps = (
-                tables.GAUSSIAN[255 - offset],
-                tables.GAUSSIAN[511 - offset],
-                tables.GAUSSIAN[256 + offset],
-                tables.GAUSSIAN[offset],
-            )
+        # Arrange
+        positions = range(256)
 
-            self.assertAlmostEqual(sum(taps) / 2048, 1.0, delta=0.002)
+        # Act
+        apart = [offset for offset in positions if abs(sum(taps_at(offset)) / UNIT - 1) > 0.002]
+
+        # Assert
+        self.assertEqual(apart, [])
 
     def test_every_tap_fits_a_signed_word(self) -> None:
-        self.assertTrue(all(-0x8000 <= value < 0x8000 for value in tables.GAUSSIAN))
+        # Arrange
+        kernel = sdsp.GAUSSIAN
+
+        # Act
+        outside = [value for value in kernel if not -0x8000 <= value < 0x8000]
+
+        # Assert
+        self.assertEqual(outside, [])
 
 
 class CounterTest(unittest.TestCase):
     def test_there_is_a_rate_for_every_five_bit_value(self) -> None:
-        self.assertEqual(len(tables.COUNTER_RATES), 32)
+        # Arrange
+        rates = sdsp.COUNTER_RATES
+
+        # Act
+        found = len(rates)
+
+        # Assert
+        self.assertEqual(found, 32)
 
     def test_there_is_an_offset_for_every_rate(self) -> None:
-        self.assertEqual(len(tables.COUNTER_OFFSETS), 32)
+        # Arrange
+        offsets = sdsp.COUNTER_OFFSETS
+
+        # Act
+        found = len(offsets)
+
+        # Assert
+        self.assertEqual(found, 32)
 
     def test_the_slowest_rate_never_fires(self) -> None:
-        self.assertGreater(tables.COUNTER_RATES[0], tables.COUNTER_RANGE)
+        # Arrange
+        rates = sdsp.COUNTER_RATES
+
+        # Act
+        slowest = rates[0]
+
+        # Assert
+        self.assertGreater(slowest, COUNTER_RANGE)
 
     def test_the_fastest_rate_fires_every_sample(self) -> None:
-        self.assertEqual(tables.COUNTER_RATES[-1], 1)
+        # Arrange
+        rates = sdsp.COUNTER_RATES
+
+        # Act
+        fastest = rates[-1]
+
+        # Assert
+        self.assertEqual(fastest, 1)
 
     def test_every_firing_rate_divides_the_counter_range(self) -> None:
-        undivided = [rate for rate in tables.COUNTER_RATES[1:] if tables.COUNTER_RANGE % rate != 0]
+        # Arrange
+        rates = sdsp.COUNTER_RATES[1:]
 
+        # Act
+        undivided = [rate for rate in rates if COUNTER_RANGE % rate != 0]
+
+        # Assert
         self.assertEqual(undivided, [])
 
     def test_the_rates_never_get_slower_as_the_number_rises(self) -> None:
-        rising = [
-            index
-            for index, (first, second) in enumerate(
-                zip(tables.COUNTER_RATES[1:], tables.COUNTER_RATES[2:], strict=False)
-            )
-            if second > first
-        ]
+        # Arrange
+        rates = sdsp.COUNTER_RATES[1:]
 
+        # Act
+        rising = [index for index, (one, two) in enumerate(pairwise(rates)) if two > one]
+
+        # Assert
         self.assertEqual(rising, [])
 
     def test_the_offsets_repeat_a_short_stagger_pattern(self) -> None:
-        self.assertEqual(set(tables.COUNTER_OFFSETS[1:]), {0, 536, 1040})
+        # Arrange
+        offsets = sdsp.COUNTER_OFFSETS[1:]
+
+        # Act
+        found = set(offsets)
+
+        # Assert
+        self.assertEqual(found, {0, 536, 1040})
 
     def test_the_stagger_cycles_every_three_rates(self) -> None:
-        middle = tables.COUNTER_OFFSETS[1:28]
+        # Arrange
+        middle = sdsp.COUNTER_OFFSETS[1:28]
 
-        self.assertEqual(middle, tuple(middle[index % 3] for index in range(len(middle))))
+        # Act
+        cycled = tuple(middle[index % 3] for index in range(len(middle)))
+
+        # Assert
+        self.assertEqual(middle, cycled)
 
     def test_an_offset_larger_than_its_rate_is_taken_modulo_it(self) -> None:
+        # Arrange
+        rates = range(1, 32)
+
+        # Act
         wrapping = [
-            rate
-            for rate in range(1, 32)
-            if tables.COUNTER_OFFSETS[rate] >= tables.COUNTER_RATES[rate]
+            rate for rate in rates if sdsp.COUNTER_OFFSETS[rate] >= sdsp.COUNTER_RATES[rate]
         ]
 
-        self.assertTrue(wrapping)
-
-    def test_the_counter_range_is_what_the_rates_were_built_for(self) -> None:
-        self.assertEqual(tables.COUNTER_RANGE, 30720)
+        # Assert
+        self.assertGreater(len(wrapping), 0)
 
 
 class SuppliedKernelTest(unittest.TestCase):
     def test_the_published_table_passes_its_own_gate(self) -> None:
-        self.assertEqual(tables.check_kernel(tables.GAUSSIAN), tables.GAUSSIAN)
+        # Arrange
+        published = sdsp.GAUSSIAN
+
+        # Act
+        found = sdsp.check_kernel(published)
+
+        # Assert
+        self.assertEqual(found, published)
 
     def test_a_list_is_handed_back_as_a_tuple(self) -> None:
-        self.assertIsInstance(tables.check_kernel(list(tables.GAUSSIAN)), tuple)
+        # Arrange
+        supplied = list(sdsp.GAUSSIAN)
+
+        # Act
+        found = sdsp.check_kernel(supplied)
+
+        # Assert
+        self.assertIsInstance(found, tuple)
 
     def test_a_table_of_the_wrong_length_is_refused(self) -> None:
-        with self.assertRaises(NotAKernel) as caught:
-            tables.check_kernel(tables.GAUSSIAN[:-1])
+        # Arrange
+        short = sdsp.GAUSSIAN[:-1]
 
-        self.assertIn("511", str(caught.exception))
+        # Act
+        said = refusal(short)
+
+        # Assert
+        self.assertIn("511", said)
 
     def test_a_table_that_dips_is_refused(self) -> None:
-        dipping = list(tables.GAUSSIAN)
-        dipping[300] = 0
+        # Arrange
+        dipping = changed(300, 0)
 
-        with self.assertRaises(NotAKernel) as caught:
-            tables.check_kernel(dipping)
+        # Act
+        said = refusal(dipping)
 
-        self.assertIn("300", str(caught.exception))
+        # Assert
+        self.assertIn("300", said)
 
     def test_a_tap_outside_a_signed_word_is_refused(self) -> None:
-        wide = list(tables.GAUSSIAN)
-        wide[-1] = 0x8000
+        # Arrange
+        wide = changed(-1, 0x8000)
 
-        with self.assertRaises(NotAKernel) as caught:
-            tables.check_kernel(wide)
+        # Act
+        said = refusal(wide)
 
-        self.assertIn("signed word", str(caught.exception))
+        # Assert
+        self.assertIn("signed word", said)
 
     def test_a_table_whose_taps_do_not_sum_to_unity_is_refused(self) -> None:
-        halved = [value // 2 for value in tables.GAUSSIAN]
+        # Arrange
+        halved = [value // 2 for value in sdsp.GAUSSIAN]
 
-        with self.assertRaises(NotAKernel) as caught:
-            tables.check_kernel(halved)
+        # Act
+        said = refusal(halved)
 
-        self.assertIn("sum to", str(caught.exception))
+        # Assert
+        self.assertIn("sum to", said)
 
     def test_the_refusal_names_the_position_that_failed(self) -> None:
-        bent = list(tables.GAUSSIAN)
-        bent[511] = bent[511] + 200
+        # Arrange
+        bent = changed(511, sdsp.GAUSSIAN[511] + 200)
 
-        with self.assertRaises(NotAKernel) as caught:
-            tables.check_kernel(bent)
+        # Act
+        said = refusal(bent)
 
-        self.assertIn("position 0", str(caught.exception))
+        # Assert
+        self.assertIn("position 0", said)
 
     def test_a_rounding_difference_inside_the_tolerance_is_allowed(self) -> None:
-        nudged = list(tables.GAUSSIAN)
-        nudged[511] = nudged[511] + 1
+        # Arrange
+        nudged = changed(511, sdsp.GAUSSIAN[511] + 1)
 
-        self.assertEqual(len(tables.check_kernel(nudged)), tables.KERNEL_LENGTH)
+        # Act
+        said = refusal(nudged)
+
+        # Assert
+        self.assertEqual(said, "")
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ Sony S-DSPサウンドジェネレータのPython実装です。実チップと�
 [![Release](https://img.shields.io/github/v/release/gufranco/sony-s-dsp-python)](https://github.com/gufranco/sony-s-dsp-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-実際の音楽ダンプから取った**240**個のレジスタ状態を**23,040**サンプル分再生し、`snes_spc 0.9.0`に対する不一致は**0**件、コンソール上で取得したチェック**104**件のうち**97**件が一致、マニュアル内で所在を確認した引用が**28**件、テストが**814**件、ステートメントとブランチのカバレッジが**100%**、依存関係はありません。
+実際の音楽ダンプから取った**240**個のレジスタ状態を**23,040**サンプル分再生し、`snes_spc 0.9.0`に対する不一致は**0**件、コンソール上で取得したチェック**104**件のうち**97**件が一致、マニュアル内で所在を確認した引用が**28**件、テストが**817**件、ステートメントとブランチのカバレッジが**100%**、依存関係はありません。
 
 ```python
 import sdsp
@@ -283,7 +283,7 @@ s-dsp s-dsp s-dsp
 | コンソールでのチェック | Shay Greenの`spc_dsp6`カートリッジの判定104件のうち97件が一致 | コンソール上で取得した値 |
 | 補間カーネル | 長さ、形状、4タップの合計 | 自己チェックのみ、成果物なし |
 
-[`conformance/hardware.json`](conformance/hardware.json)はマニュアルの各数値をそのページとともに保持し、[`conformance/hardware.test.py`](conformance/hardware.test.py)はパッケージの定数をそれらと比較します。マニュアルのテキストレイヤーは図表の手前で途切れているので、すべての表はレンダリングしたページ画像から読み取りました。`python3 -m conformance.quotes`はマニュアル内で28個の引用文の所在を確認します。
+[`conformance/hardware.json`](conformance/hardware.json)はマニュアルの各数値をそのページとともに保持し、[`conformance/hardware.test.py`](conformance/hardware.test.py)はそれらを、駆動したパートの動作とパッケージが公開する表に照らして確認します。マニュアルのテキストレイヤーは図表の手前で途切れているので、すべての表はレンダリングしたページ画像から読み取りました。`python3 -m conformance.quotes`はマニュアル内で28個の引用文の所在を確認します。
 
 ### ノイズクロックがレート表を固定する
 

@@ -71,11 +71,12 @@ ruff check .
 mypy
 pnpm run format:check
 uvx yamllint==1.38.0 --strict .
-python3 -m coverage erase
+cov=(uvx --python 3.12 --from coverage==7.6.10 --with setuptools==84.0.0 coverage)
+"${cov[@]}" erase
 for file in $(find sdsp conformance -name '*.test.py' | sort); do
-  python3 -m coverage run -a "$file"
+  "${cov[@]}" run -a "$file"
 done
-python3 -m coverage report
+"${cov[@]}" report
 ```
 
 Then the throughput floor, which runs outside the coverage step because a tracer
@@ -164,7 +165,10 @@ conformance/
   event and sets what `resetLine` in the record lists, and nothing calls it for
   you: a test, a runner or an example that wants the defined state calls it
   itself. A new field goes in both the power-on draw and the reset, in
-  `state.py` or `voice.py`, and in that list, or a test fails.
+  `state.py` or `voice.py`, and in that list. Tests reach the part only through
+  its public interface, so a voice field the reset misses fails the voice reset
+  test, and a part field it misses fails only once it reaches the output: parts
+  powered on from different seeds, reset and driven alike, must play alike.
 - **The corpus is the only source for the audio.** A change that alters output
   and still passes the unit tests has not been checked at all until the corpus
   runs.

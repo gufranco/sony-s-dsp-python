@@ -1,5 +1,4 @@
 import json
-import random
 import sys
 import unittest
 from pathlib import Path
@@ -7,15 +6,35 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from sdsp import voice
+import sdsp
 
 RECORD = Path(__file__).resolve().parent.parent / "conformance" / "hardware.json"
 
 SEEDS = range(256)
 
+KEY_ON_DELAY = 5
 
-def held(part: voice.Voice) -> dict[str, Any]:
-    return {name: getattr(part, name) for name in voice.Voice.__slots__}
+ENVELOPE_PHASES = 4
+
+DOCUMENTED = (
+    "index",
+    "bit",
+    "base",
+    "brr_address",
+    "brr_offset",
+    "buffer",
+    "buffer_position",
+    "interpolation",
+    "envelope",
+    "hidden_envelope",
+    "envelope_mode",
+    "envelope_out",
+    "key_on_delay",
+)
+
+
+def held(part: sdsp.Voice) -> dict[str, Any]:
+    return {name: getattr(part, name) for name in DOCUMENTED}
 
 
 def reset_sets() -> dict[str, str]:
@@ -24,47 +43,48 @@ def reset_sets() -> dict[str, str]:
 
 
 def every_seed(look: str) -> set[int]:
-    return {getattr(voice.Voice(0, seed), look) for seed in SEEDS}
+    return {getattr(sdsp.Voice(0, seed), look) for seed in SEEDS}
 
 
 class PowerOnTest(unittest.TestCase):
     def test_one_seed_builds_the_same_voice_twice(self) -> None:
         # Arrange
-        first = voice.Voice(3, 0x1234)
+        first = sdsp.Voice(3, 0x1234)
 
         # Act
-        second = voice.Voice(3, 0x1234)
+        second = sdsp.Voice(3, 0x1234)
 
         # Assert
         self.assertEqual(held(first), held(second))
 
     def test_two_seeds_build_two_different_voices(self) -> None:
         # Arrange
-        first = voice.Voice(3, 0x1234)
+        first = sdsp.Voice(3, 0x1234)
 
         # Act
-        second = voice.Voice(3, 0x4321)
+        second = sdsp.Voice(3, 0x4321)
 
         # Assert
         self.assertNotEqual(held(first), held(second))
 
     def test_a_voice_comes_up_holding_something_other_than_a_reset_leaves(self) -> None:
         # Arrange
-        reset = voice.Voice(0)
+        reset = sdsp.Voice(0)
         reset.reset()
 
         # Act
-        built = voice.Voice(0)
+        built = sdsp.Voice(0)
 
         # Assert
         self.assertNotEqual(held(built), held(reset))
 
     def test_both_copies_of_the_decoded_samples_hold_the_same_samples(self) -> None:
         # Arrange
-        built = voice.Voice(0, 0x77)
+        built = sdsp.Voice(0, 0x77)
+        half = len(built.buffer) // 2
 
         # Act
-        halves = (built.buffer[: voice.BRR_BUFFER], built.buffer[voice.BRR_BUFFER :])
+        halves = (built.buffer[:half], built.buffer[half:])
 
         # Assert
         self.assertEqual(halves[0], halves[1])
@@ -97,7 +117,7 @@ class PowerOnTest(unittest.TestCase):
         found = every_seed(look)
 
         # Assert
-        self.assertEqual(found, set(range(voice.KEY_ON_DELAY + 1)))
+        self.assertEqual(found, set(range(KEY_ON_DELAY + 1)))
 
     def test_every_envelope_phase_can_be_the_one_a_voice_comes_up_in(self) -> None:
         # Arrange
@@ -107,23 +127,27 @@ class PowerOnTest(unittest.TestCase):
         found = every_seed(look)
 
         # Assert
-        self.assertEqual(found, set(range(voice.ENV_MODES)))
+        self.assertEqual(found, set(range(ENVELOPE_PHASES)))
 
-    def test_a_signed_draw_reaches_both_ends_of_its_span(self) -> None:
+    def test_every_decoded_sample_comes_up_a_signed_word_of_either_sign(self) -> None:
         # Arrange
-        sources = [random.Random(seed) for seed in SEEDS]
+        voices = [sdsp.Voice(0, seed) for seed in SEEDS]
 
         # Act
-        found = sorted({voice.signed_draw(source, 4) for source in sources})
+        found = [sample for one in voices for sample in one.buffer]
 
         # Assert
-        self.assertEqual(found, [-2, -1, 0, 1])
+        self.assertEqual(
+            (min(found) < 0 < max(found), min(found) >= -0x8000, max(found) <= 0x7FFF),
+            (True, True, True),
+        )
 
 
 class ResetTest(unittest.TestCase):
     def test_a_reset_sets_every_field_the_record_says_it_sets(self) -> None:
         # Arrange
-        part = voice.Voice(5, 0x99)
+        part = sdsp.Voice(5, 0x99)
+        length = len(part.buffer)
 
         # Act
         part.reset()
@@ -132,16 +156,14 @@ class ResetTest(unittest.TestCase):
         self.assertEqual(
             {name: held(part)[name] for name in reset_sets()},
             {
-                name: [int(value, 16)] * (voice.BRR_BUFFER * 2)
-                if name == "buffer"
-                else int(value, 16)
+                name: [int(value, 16)] * length if name == "buffer" else int(value, 16)
                 for name, value in reset_sets().items()
             },
         )
 
     def test_a_reset_leaves_where_the_voice_is_wired_alone(self) -> None:
         # Arrange
-        part = voice.Voice(5, 0x99)
+        part = sdsp.Voice(5, 0x99)
 
         # Act
         part.reset()

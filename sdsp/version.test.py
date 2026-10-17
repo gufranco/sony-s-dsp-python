@@ -1,3 +1,4 @@
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -5,18 +6,37 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import sdsp
-from sdsp import version
+
+HERE = Path(__file__).resolve().parent
+
+STAMPED = re.compile(r'^VERSION = "([^"]+)"$', re.M)
+
+
+def stamped() -> str:
+    found = STAMPED.search((HERE / "version.py").read_text())
+    return found.group(1) if found else ""
 
 
 class VersionTest(unittest.TestCase):
     def test_the_version_is_three_numbers(self) -> None:
-        parts = version.VERSION.split(".")
+        # Arrange
+        version = sdsp.__version__
 
-        self.assertEqual(len(parts), 3)
-        self.assertTrue(all(part.isdigit() for part in parts))
+        # Act
+        parts = version.split(".")
 
-    def test_the_package_reports_the_same_version(self) -> None:
-        self.assertEqual(sdsp.__version__, version.VERSION)
+        # Assert
+        self.assertEqual([part.isdigit() for part in parts], [True, True, True])
+
+    def test_the_package_reports_the_version_the_release_job_stamped(self) -> None:
+        # Arrange
+        written = stamped()
+
+        # Act
+        reported = sdsp.__version__
+
+        # Assert
+        self.assertEqual(reported, written)
 
 
 if __name__ == "__main__":
