@@ -53,7 +53,7 @@ jobs:
           persist-credentials: false
 
       - name: Score the repository and publish the result anybody can re-derive
-        uses: ossf/scorecard-action@v2.4.4
+        uses: ossf/scorecard-action@v2.5.0
         with:
           results_file: results.sarif
           results_format: sarif
