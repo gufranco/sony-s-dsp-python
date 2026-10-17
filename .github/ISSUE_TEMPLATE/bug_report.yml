@@ -1,3 +1,4 @@
+---
 name: Something is wrong
 description: The part produces something it should not, or nothing works at all
 labels: ["bug"]

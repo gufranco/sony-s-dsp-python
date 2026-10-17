@@ -1,3 +1,4 @@
+---
 name: CI
 
 on:
@@ -49,13 +50,12 @@ jobs:
       - name: Check that every JSON file is formatted
         run: pnpm run format:check
 
-      # The workflows are the one thing here nothing else checks, and a mistake
-      # in them is only visible once a run has already gone wrong. The archive
-      # is verified by digest before anything in it runs.
-      - name: Check the workflows themselves
+      - name: Check the workflows themselves, with an archive verified by digest
         run: |
+          releases="https://github.com/rhysd/actionlint/releases/download"
+          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
           curl -fsSL -o actionlint.tar.gz \
-            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+            "${releases}/v${ACTIONLINT_VERSION}/${archive}"
           echo "${ACTIONLINT_SHA256}  actionlint.tar.gz" | sha256sum -c -
           tar -xzf actionlint.tar.gz actionlint
           ./actionlint -color
@@ -64,6 +64,11 @@ jobs:
         env:
           ACTIONLINT_VERSION: "1.7.12"
           ACTIONLINT_SHA256: "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8"
+
+      - name: Lint every YAML file
+        run: |
+          pipx install yamllint==1.38.0
+          yamllint --strict .
 
   types:
     name: Types
@@ -78,10 +83,7 @@ jobs:
       - name: Install mypy
         run: pipx install mypy==1.14.1
 
-      # Strict, with every optional error class the checker offers. The
-      # configuration lives in pyproject.toml so this run and a local one are
-      # the same run.
-      - name: Check types
+      - name: Check types, strictly, as configured in pyproject.toml
         run: mypy
 
   test:
@@ -139,11 +141,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      # The manual is not redistributable, so it is not here and this checks
-      # nothing on a runner. It says so rather than reporting a pass: the value
-      # is that somebody running it with the manual on disk gets a real answer,
-      # and that a run without it cannot be mistaken for one.
-      - name: Every quoted sentence, against the document it came from
+      - name: Every quote against the manual, which says so when it is absent
         run: python -m conformance.quotes
 
   package:
