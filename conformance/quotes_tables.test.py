@@ -11,6 +11,128 @@ sys.path.insert(0, str(ROOT))
 from conformance import quotes  # noqa: E402
 
 
+class AttributionTest(unittest.TestCase):
+    def a_record(self, cited: str, quote: str) -> tuple[str, object]:
+        return (
+            "held.json",
+            {
+                "documents": {
+                    "right": {"file": "right.pdf"},
+                    "wrong": {"file": "wrong.pdf"},
+                },
+                "facts": {"a": {"document": cited, "quote": quote}},
+            },
+        )
+
+    BOOKS: ClassVar[dict[str, str]] = {
+        "right.pdf": quotes.flatten(
+            "the quick brown fox jumps over the lazy dog and keeps running"
+        ),
+        "wrong.pdf": quotes.flatten("nothing here resembles the sentence above in any way at all"),
+    }
+
+    def test_a_quote_in_the_document_it_names_is_accepted(self) -> None:
+        # Arrange
+        given = [self.a_record("right", "the quick brown fox jumps over the lazy dog")]
+
+        # Act
+        found = quotes.misattributed(given, self.BOOKS)
+
+        # Assert
+        self.assertEqual(found, [])
+
+    def test_a_quote_that_lives_in_another_document_is_reported(self) -> None:
+        # Arrange
+        given = [self.a_record("wrong", "the quick brown fox jumps over the lazy dog")]
+
+        # Act
+        found = quotes.misattributed(given, self.BOOKS)
+
+        # Assert
+        self.assertEqual(len(found), 1)
+        self.assertIn("right.pdf", found[0])
+
+    def test_a_quote_in_no_document_at_all_is_left_to_the_other_check(self) -> None:
+        # Arrange
+        given = [self.a_record("right", "a sentence that appears in neither of them anywhere")]
+
+        # Act
+        found = quotes.misattributed(given, self.BOOKS)
+
+        # Assert
+        self.assertEqual(found, [])
+
+    def test_a_document_with_no_file_on_this_machine_is_skipped(self) -> None:
+        # Arrange
+        held = (
+            "held.json",
+            {
+                "documents": {"right": {"file": "absent.pdf"}},
+                "facts": {"a": {"document": "right", "quote": "the quick brown fox jumps"}},
+            },
+        )
+
+        # Act
+        found = quotes.misattributed([held], self.BOOKS)
+
+        # Assert
+        self.assertEqual(found, [])
+
+    def test_a_record_declaring_no_files_is_left_alone(self) -> None:
+        # Arrange
+        held = ("held.json", {"facts": {"a": {"document": "x", "quote": "the quick brown fox"}}})
+
+        # Act
+        found = quotes.misattributed([held], self.BOOKS)
+
+        # Assert
+        self.assertEqual(found, [])
+
+    def test_an_entry_saying_nothing_has_no_quote_to_place(self) -> None:
+        # Arrange
+        held = (
+            "held.json",
+            {
+                "documents": {"right": {"file": "right.pdf"}},
+                "facts": {
+                    "a": {"document": "right", "quote": "nothing at all", "saysNothing": True}
+                },
+            },
+        )
+
+        # Act
+        found = quotes.misattributed([held], self.BOOKS)
+
+        # Assert
+        self.assertEqual(found, [])
+
+    def test_a_declared_document_naming_no_file_cannot_be_checked(self) -> None:
+        # Arrange
+        held = (
+            "held.json",
+            {
+                "documents": {"right": {"file": "right.pdf"}, "paperOnly": {"title": "no file"}},
+                "facts": {"a": {"document": "paperOnly", "quote": "the quick brown fox jumps"}},
+            },
+        )
+
+        # Act
+        found = quotes.misattributed([held], self.BOOKS)
+
+        # Assert
+        self.assertEqual(found, [])
+
+    def test_the_records_on_disk_are_all_where_they_say_they_are(self) -> None:
+        # Arrange
+        records = quotes.loaded()
+
+        # Act
+        found = quotes.misattributed(records)
+
+        # Assert
+        self.assertEqual(found, [])
+
+
 class PhantomTableTest(unittest.TestCase):
     TABLES: ClassVar[dict[str, set[str]]] = {
         "right.pdf": {"4-1", "7-1"},
