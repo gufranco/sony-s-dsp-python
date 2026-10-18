@@ -139,6 +139,12 @@ The coverage exclusions carry none either:
   gate mean something different on each runtime.
 - `^\s*\.\.\.$` and `: \.\.\.$`: a protocol method's ellipsis is a contract the
   type checker reads and the runtime never runs.
+- `@unittest\.skipUnless\(CLOCKED,` in the coverage exclusions: this member is
+  not a clocked part, so the family tests that drive a clock are skipped here
+  and their bodies never run.
+- `@unittest\.skipUnless\(SOLD_AS_A_COMPONENT,`, `^def machine_mentions\(` and
+  `^def listing\(` in the coverage exclusions: this part only existed inside one
+  machine, so the family sweep for machine names is skipped here.
 
 ## Layout
 
@@ -157,7 +163,9 @@ sdsp/
   doctor.py      what is actually on this machine, printed for a bug report
   version.py     rewritten by the release job and by nothing else
 conformance/
-  family.test.py the family standard, held to this repository
+  family_*.test.py the family standard, held to this repository, one topic a file
+  family_member.py what this member answers to them
+  family_shared.py what more than one of them reads
   corpus.json    real game configurations, and what they produce
   corpus.py      replaying them and comparing sample for sample
   capture.py     reading dumps a reader owns, to add to the corpus
