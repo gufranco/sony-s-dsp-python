@@ -3,8 +3,8 @@
   "why": "His harness reports only the first failure and then restarts, so one disagreement hides every check after it. This records the verdict and then turns that check's four conditional branches into no-ops so the run carries on. Nothing rewrites what a check expects: the verdict is ignored, never changed, and every disagreement below is printed as it was measured.",
   "carried": false,
   "verdicts": 104,
-  "agreed": 97,
-  "disagreed": 7,
+  "agreed": 104,
+  "disagreed": 0,
   "checks": [
     {
       "check": "Echo/edl 0 quirk",
@@ -28,15 +28,11 @@
     },
     {
       "check": "Envelope/gain $E0 threshold",
-      "agreed": false,
-      "console": "35 9a 05 12",
-      "thisModel": "37 01 11 18"
+      "agreed": true
     },
     {
       "check": "Envelope/hidden env 0 at kon",
-      "agreed": false,
-      "console": "41 c4 17 c9",
-      "thisModel": "a6 50 2a 6c"
+      "agreed": true
     },
     {
       "check": "Envelope/hidden env after adsr",
@@ -44,9 +40,7 @@
     },
     {
       "check": "Envelope/hidden env after gain",
-      "agreed": false,
-      "console": "81 89 73 45",
-      "thisModel": "6c ce 9d 78"
+      "agreed": true
     },
     {
       "check": "KON/BRR header.03 read times",
@@ -62,9 +56,7 @@
     },
     {
       "check": "KON/hidden env flag during kon",
-      "agreed": false,
-      "console": "fb 67 2f 54",
-      "thisModel": "9b 44 93 a9"
+      "agreed": true
     },
     {
       "check": "KON/kon as prev sample ends",
@@ -124,9 +116,7 @@
     },
     {
       "check": "Misc/$F0-$FF are not ram",
-      "agreed": false,
-      "console": "df 68 a6 6f",
-      "thisModel": "af 3b 52 63"
+      "agreed": true
     },
     {
       "check": "Misc/brr addr wrap-around",
@@ -369,14 +359,6 @@
       "agreed": true
     },
     {
-      "check": "Timing/Voice/V3 adsr1.1F",
-      "agreed": true
-    },
-    {
-      "check": "Timing/Voice/V3 adsr1.E0",
-      "agreed": true
-    },
-    {
       "check": "Timing/Voice/V3 BRR.header.03",
       "agreed": true
     },
@@ -386,6 +368,14 @@
     },
     {
       "check": "Timing/Voice/V3 BRR.sample.msb",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V3 adsr1.1F",
+      "agreed": true
+    },
+    {
+      "check": "Timing/Voice/V3 adsr1.E0",
       "agreed": true
     },
     {
@@ -426,20 +416,23 @@
     },
     {
       "check": "Timing/Voice/V8 outx",
-      "agreed": false,
-      "console": "a2 07 6d 93",
-      "thisModel": "d0 c2 83 6f"
+      "agreed": true
     },
     {
       "check": "Timing/Voice/V9 envx",
-      "agreed": false,
-      "console": "a2 07 6d 93",
-      "thisModel": "d0 c2 83 6f"
+      "agreed": true
     }
   ],
   "verified": true,
-  "evidence": "97 of 104 checks agree with a value taken on a console, byte for byte.",
-  "howToSettleIt": "Four of the seven disagreements are the hidden envelope on the gain and key-on paths, and the same subsystem agrees on the ADSR path, which is where to look. Two more are one cause: V8 outx and V9 envx report the same pair of values. The seventh, Misc/$F0-$FF are not ram, is about the audio unit's register file rather than this part.",
+  "evidence": "104 of 104 checks agree with a value taken on a console, byte for byte (as of 2026-10-19).",
+  "howToSettleIt": "Settled for what the cartridge reaches. Seven used to disagree. Four were the hidden envelope on the gain and key-on paths, where this model tested the previous hidden envelope against 0x600 as a signed number and snes_spc and ares test it unsigned. Two, V8 outx and V9 envx, were one cause: a write to OUTX or ENVX did not reach the value the schedule was holding to write there. The seventh, Misc/$F0-$FF are not ram, was the audio unit's register file in sony-s-smp-python.",
   "producedBy": "A cut-down console driving the cartridge into a composed audio unit. It is not carried by any member of this family and deliberately so: a console processor does not belong in a model of the sound generator. sony-s-smp-python records why under what is deliberately not modelled. What is carried is this record, so the verdicts can be disputed without rebuilding the harness.",
-  "howToRepeat": "Compose mos65xx-python with sony-s-smp-python, decode the cartridge as LoROM, wire $2140-$2143 to the unit's four ports, and watch for the four-byte comparison against $dc through $df that every one of his checks ends with."
+  "howToRepeat": "Compose mos65xx-python with sony-s-smp-python, decode the cartridge as LoROM, wire $2140-$2143 to the unit's four ports, and watch for the four-byte comparison against $dc through $df that every one of his checks ends with.",
+  "cartridge": {
+    "name": "spc_dsp6.sfc",
+    "sha256": "b12038f865536a33003c9887e6f86fcbcb526b7f1766526ab30cb74b7380aa9a",
+    "from": "https://gitlab.com/higan/snes-test-roms",
+    "atCommit": "26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+    "runOn": "2026-10-19"
+  }
 }

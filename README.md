@@ -8,7 +8,7 @@ English | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md) | [繁�
 [![Release](https://img.shields.io/github/v/release/gufranco/sony-s-dsp-python)](https://github.com/gufranco/sony-s-dsp-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**240** register states from real music dumps replayed for **23,040** samples, **0** failures against `snes_spc 0.9.0`, **97** of **104** checks taken on a console agree, **28** quotes located in the manual, **831** tests, **100%** statement and branch coverage, no dependencies
+**240** register states from real music dumps replayed for **23,040** samples, **0** failures against `snes_spc 0.9.0`, **104** of **104** checks taken on a console agree, **28** quotes located in the manual, **831** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 import sdsp
@@ -280,7 +280,7 @@ There is one model. The S-DSP sits inside the S-SMP audio unit beside the SPC700
 | Attack times            | Table 3-7-2, all 16 rows                                                 | Manufacturer                 |
 | Decay and sustain times | Table 3-7-2, all 39 rows, against one endpoint the manual does not print | Manufacturer, relative       |
 | Whole-part output       | 240 cases, 23,040 samples, against `snes_spc 0.9.0`                      | A second implementation      |
-| Console checks          | 97 of 104 verdicts in Shay Green's `spc_dsp6` cartridge agree            | Values taken on a console    |
+| Console checks          | 104 of 104 verdicts in Shay Green's `spc_dsp6` cartridge agree           | Values taken on a console    |
 | Interpolation kernel    | Length, shape and the four-tap sum                                       | Self-check only, no artifact |
 
 [`conformance/hardware.json`](conformance/hardware.json) carries each figure from the manual with its page, and [`conformance/hardware.test.py`](conformance/hardware.test.py) holds them to what the part does when driven and to the tables the package exports. The manual's text layer stops at the figures, so every table was read off a rendered page image. `python3 -m conformance.quotes` locates 28 quoted sentences in the manual.
@@ -312,7 +312,7 @@ Two different tables can pass, so passing means the table could be the part's. T
 
 `snes_spc 0.9.0` by Shay Green, which snes9x carries at `apu/bapu/dsp/SPC_DSP.cpp`, decides everything the manual does not reach, which is the audio itself. Agreement with it is agreement with that program, and [`conformance/divergences.json`](conformance/divergences.json) records that as its first entry, at severity high. The same author wrote the `spc_dsp6` cartridge, so the two are one source, not two.
 
-The cartridge carries checks with expectations taken on a console. Driven through the audio unit in [sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python), 104 of them reach a verdict here, 97 agree and 7 do not. [`conformance/cartridge.json`](conformance/cartridge.json) holds every verdict, and [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) groups the 7 by cause.
+The cartridge carries checks with expectations taken on a console. Driven through the audio unit in [sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python), 104 of them reach a verdict here and all 104 agree. [`conformance/cartridge.json`](conformance/cartridge.json) holds every verdict, and [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) names the three causes of the seven that used to disagree.
 
 ### The corpus
 

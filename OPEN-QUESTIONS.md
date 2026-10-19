@@ -46,131 +46,59 @@ that two implementations agree, which is not the same as either being right abou
 silicon, and the record names the rung rather than presenting the agreement as a
 measurement.
 
-**What is now known.** His `spc_dsp6.sfc` carries 111 checks with expectations
-taken on a console, and it is no longer out of reach. Driven at this model
-through the composed audio unit in
-[sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python), it runs the
-echo group, reaches the envelope group, and reports a disagreement with a table
-checksum of `E7EEFEC8`.
+**What is now known.** His `spc_dsp6.sfc` carries checks with expectations taken
+on a console. Driven at this model through the composed audio unit in
+[sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python), each check
+uploads as its own program carrying its name and the value a console produced, so
+the verdict is per check. His harness reports only the first failure and then
+restarts, so the run records each verdict and turns that check's four
+conditional branches into no-ops to carry on. Nothing rewrites what a check
+expects.
 
-The obvious way for that to be an artefact is the clock, since the console and
-the audio unit run from separate crystals and the harness driving this had to
-pick a rate between them. It is not: at one, two and three of the unit's cycles
-per console instruction the checksum is the same every time, which is what a
-figure that comes out of the part rather than out of the harness looks like.
+**All 104 verdicts it reaches agree** (as of 2026-10-19). The cartridge is
+SHA-256 `b12038f865536a33003c9887e6f86fcbcb526b7f1766526ab30cb74b7380aa9a`, from
+`https://gitlab.com/higan/snes-test-roms` at commit
+`26e8aa91e0d3b90b901e7e693bc4a8244b391d7b`, and is not carried here.
 
-**Ninety seven of his checks pass and seven fail.** Each check is uploaded as its own
-program carrying both its name and the value a console produced, so the verdict
-is per check rather than for the run:
-
-His harness reports only the first failure and then restarts, so one
-disagreement used to hide every check after it. The run now records the verdict
-and turns that check's four conditional branches into no-ops so it carries on.
-Nothing rewrites what a check expects: a verdict is ignored, never changed.
-
-| Group     |  Agree | Disagree |
-| --------- | -----: | -------: |
-| Order     |     19 |        0 |
-| Timing    |     39 |        2 |
-| KON       |     17 |        1 |
-| Misc      |      8 |        1 |
-| Random    |      8 |        0 |
-| Envelope  |      4 |        3 |
-| Echo      |      2 |        0 |
-| **Total** | **97** |    **7** |
+| Group     |   Agree | Disagree |
+| --------- | ------: | -------: |
+| Order     |      19 |        0 |
+| Timing    |      41 |        0 |
+| KON       |      18 |        0 |
+| Misc      |       9 |        0 |
+| Random    |       8 |        0 |
+| Envelope  |       7 |        0 |
+| Echo      |       2 |        0 |
+| **Total** | **104** |    **0** |
 
 Every verdict is in
-[`conformance/cartridge.json`](conformance/cartridge.json) with the value a
-console produced beside the value this model produced.
+[`conformance/cartridge.json`](conformance/cartridge.json).
 
-**The seven are three causes, not seven.** Four are the hidden envelope, and
-only on the gain and key-on paths: `Envelope/gain $E0 threshold`, `Envelope/hidden
-env 0 at kon`, `Envelope/hidden env after gain` and `KON/hidden env flag during
-kon`. `Envelope/hidden env after adsr` agrees, which is what makes the grouping
-worth trusting: the same value is handled correctly down one path and not the
-other. Two more are one cause: `Timing/Voice/V8 outx` and `Timing/Voice/V9 envx`
-report the identical pair of values, and that cause is now named. With a voice
-playing, the only registers this schedule writes on its own are OUTX at phase 3
-and ENVX at phase 4, which are exactly the two those checks sample; every other
-timing check samples a register the console wrote. A read is served straight out
-of the register file with no relation to where in the sample the part is, and a
-phase runs whole, so nothing orders the part's own write against a console read
-inside one phase. That was read off this model rather than off the cartridge, and
-[`sdsp/core.test.py`](sdsp/core.test.py) pins the three facts it rests on so it
-stops holding out loud if a fourth register is ever written by the schedule. The
-seventh, `Misc/$F0-$FF are not ram`, is
-about the audio unit's register file rather than this part, and is recorded
-against [sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python).
+Seven of them disagreed until three causes were found, each read out of a second
+implementation at a pinned commit and then confirmed by the console's value:
 
-**The failing check is down to one byte.** Everything it feeds its checksum was
-captured at the one instruction that feeds it, 28 bytes, and plain CRC-32 begun
-at all ones reproduces the unit's own accumulator exactly, so the capture is the
-input rather than a reconstruction of it. Of every single-byte and every
-single-word correction to those 28 bytes, exactly one produces the console's
-value: **the seventeenth byte must be `0x27` and this model makes it `0x3f`.**
+- **The bent gain increase tested the hidden envelope as a signed number.** It
+  drops to the slow step once the previous step's hidden envelope is at or past
+  `0x600`, and both `snes_spc 0.9.0` (`SPC_DSP.cpp` line 626, as snes9x at
+  `2971061c` carries it) and ares at `9408cb43` (`sfc/dsp/envelope.cpp`) read it
+  unsigned, so a hidden envelope a linear decrease drove below zero also takes
+  the slow step. This was `Envelope/gain $E0 threshold`, `Envelope/hidden env 0
+at kon`, `Envelope/hidden env after gain` and `KON/hidden env flag during kon`.
+- **A write to OUTX or ENVX did not reach the value the schedule was holding.**
+  Both implementations latch the written byte, so the schedule writes it back
+  rather than its own. This was `Timing/Voice/V8 outx` and `Timing/Voice/V9
+envx`. They are settled at the step granularity this model runs at, which is
+  also the granularity ares runs its schedule at, so no finer interval is needed
+  for them.
+- **`Misc/$F0-$FF are not ram` was the audio unit's register file**, fixed in
+  sony-s-smp-python.
 
-That byte is the low half of a word the check halves before reporting, so what
-it means is that this model counts **126 where a console counts 78**.
+**What is still not known.** The cartridge checks what the registers, the memory
+and the schedule do. It reaches the sample values only through checksums of a
+few of them, so every other sample still rests on agreement with `snes_spc`.
 
-**The obvious cause has been ruled out, three ways.** The bent increase adds
-`0x20` and drops to `0x8` once past `0x600`, and it tests the hidden envelope
-left by the previous step rather than the value it has just computed. That
-asymmetry is real and it is not this: testing the computed value with `>`, and
-again with `>=`, leaves the byte at `0x3f` both times. The line stands unchanged
-rather than being adjusted to look tidier.
-
-That is the interesting result rather than a disappointing one. This model agrees
-with `snes_spc` across 23,040 samples and disagrees with the same author's
-hardware check, so the two are reaching different ground: either the corpus does
-not cover what the check covers, or something between them is at fault.
-
-**The check no longer needs a cartridge to run, and the comparison it enables is
-inconclusive.** The failing check was captured at the instant the audio unit
-jumps into it and written back out as a file that both this family and the
-author's own library load. `snes_spc 0.9.0` was built from source and handed the
-same file, with no console attached at all.
-
-His library answers two different ways depending on nothing but how it is called:
-
-| `snes_spc 0.9.0`, same program, only the call size changed      | Result        |
-| --------------------------------------------------------------- | ------------- |
-| one sample per call                                             | `a2 c9 a2 2b` |
-| two, sixteen, two hundred and fifty six, four thousand per call | `00 ed 26 be` |
-
-This family, stepped one instruction at a time, gives `a2 c9 a2 2b`, which is
-what his gives when driven the same way. A console gives `35 9a 05 12`, which is
-neither.
-
-So the two implementations are not shown to disagree. What is shown is that his
-is sensitive to the granularity it is driven at, that the finer granularity is
-the one this family matches, and that neither granularity reproduces hardware.
-An earlier version of this entry read the coarse-call figure as his answer and
-called the difference real. That was wrong, and the control that caught it was
-running his library at more than one call size.
-
-What the check does, read out of its own code: it writes `$ff` to voice 0's gain
-register, which is bent increase at rate 31, then `$e0`, which is bent increase at
-rate 0, waits, and reports a sixteen bit count halved on the way out. This model
-makes that count 126 and a console makes it 78.
-
-**What is not known.** Where the two implementations part company inside that
-sequence. It is now a bounded job rather than a cartridge run: both are on this
-machine, both take under a minute, and the state of one can be compared against
-the state of the other after any number of samples.
-
-**A third opinion was read and it agrees with this model.** The MiSTer SNES core
-keeps a latched flag for the bent increase, sets it from the freshly computed
-envelope with `>= 0x600`, and uses it on the following step, which is what this
-package does by testing the previous step's hidden envelope. It also sets that
-flag when the computed value overflows either way, which this package did not.
-Adding that made no difference to the check, so it is not the cause, and the line
-stands as it was. That core is another implementation rather than a measurement,
-so it is a third opinion and not a rung.
-
-**What would settle or reopen it.** Isolating that check and reading what it
-expects, which is in the cartridge rather than in anybody's prose. Failing that,
-a recording of a real audio unit playing a known program, compared sample for
-sample.
+**What would settle or reopen it.** A recording of a real audio unit playing a
+known program, compared sample for sample.
 
 ### The gaussian interpolation kernel.
 
@@ -313,7 +241,11 @@ the processor's point of view. The processor is
 [sony-spc700-python](https://github.com/gufranco/sony-spc700-python) and it
 reports its own cycles.
 
-**What would settle or reopen it.** A capture of both parts on one bus.
+**What would settle or reopen it.** A capture of both parts on one bus. Shay
+Green's `spc_dsp6.sfc` already holds the alignment the console sees: composed
+with the processor in
+[sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python), its 41
+timing checks agree with values taken on a console.
 
 ## What a comparison against the author's own implementation could not settle
 

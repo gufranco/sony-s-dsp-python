@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/sony-s-dsp-python)](https://github.com/gufranco/sony-s-dsp-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-來自真實音樂傾印的 **240** 個暫存器狀態重播 **23,040** 個樣本，與 `snes_spc 0.9.0` 相比 **0** 個失敗，在主機上取得的 **104** 項檢查中有 **97** 項一致，在手冊中找到 **28** 段引文，**831** 項測試，**100%** 語句和分支覆蓋率，沒有依賴項
+來自真實音樂傾印的 **240** 個暫存器狀態重播 **23,040** 個樣本，與 `snes_spc 0.9.0` 相比 **0** 個失敗，在主機上取得的 **104** 項檢查全部一致，在手冊中找到 **28** 段引文，**831** 項測試，**100%** 語句和分支覆蓋率，沒有依賴項
 
 ```python
 import sdsp
@@ -273,15 +273,15 @@ s-dsp s-dsp s-dsp
 
 ## 是否正確
 
-| 項目           | 依據                                                   | 證據類型               |
-| :------------- | :----------------------------------------------------- | :--------------------- |
-| 暫存器映射     | Nintendo 的表 3-7-1，涵蓋這個型號指定的每個位址        | 製造商                 |
-| 速率表         | 表 3-7-4，噪音時鐘，全部 32 行                         | 製造商                 |
-| 起音時間       | 表 3-7-2，全部 16 行                                   | 製造商                 |
-| 衰減和延音時間 | 表 3-7-2，全部 39 行，對照手冊沒有印出的一個終點       | 製造商，相對           |
-| 整個晶片的輸出 | 240 個案例，23,040 個樣本，對照 `snes_spc 0.9.0`       | 第二個實現             |
-| 主機檢查       | Shay Green 的 `spc_dsp6` 卡帶中 104 個判定有 97 個一致 | 在主機上取得的值       |
-| 插值核         | 長度、形狀和四個抽頭之和                               | 只有自我檢查，沒有實物 |
+| 項目           | 依據                                               | 證據類型               |
+| :------------- | :------------------------------------------------- | :--------------------- |
+| 暫存器映射     | Nintendo 的表 3-7-1，涵蓋這個型號指定的每個位址    | 製造商                 |
+| 速率表         | 表 3-7-4，噪音時鐘，全部 32 行                     | 製造商                 |
+| 起音時間       | 表 3-7-2，全部 16 行                               | 製造商                 |
+| 衰減和延音時間 | 表 3-7-2，全部 39 行，對照手冊沒有印出的一個終點   | 製造商，相對           |
+| 整個晶片的輸出 | 240 個案例，23,040 個樣本，對照 `snes_spc 0.9.0`   | 第二個實現             |
+| 主機檢查       | Shay Green 的 `spc_dsp6` 卡帶中 104 個判定全部一致 | 在主機上取得的值       |
+| 插值核         | 長度、形狀和四個抽頭之和                           | 只有自我檢查，沒有實物 |
 
 [`conformance/hardware.json`](conformance/hardware.json) 記錄手冊中的每個數字及其頁碼，[`conformance/hardware.test.py`](conformance/hardware.test.py) 把它們與驅動晶片時的實際行為及套件匯出的表比較。手冊的文字層到了圖表就中斷，所以每個表都是從渲染出的頁面圖像讀出的。`python3 -m conformance.quotes` 在手冊中找到 28 段引文。
 
@@ -312,7 +312,7 @@ s-dsp s-dsp s-dsp
 
 Shay Green 的 `snes_spc 0.9.0`，即 snes9x 在 `apu/bapu/dsp/SPC_DSP.cpp` 所帶的版本，決定手冊沒有涵蓋的一切，也就是音訊本身。與它一致，就是與那個程式一致，[`conformance/divergences.json`](conformance/divergences.json) 把這一點列為第一項，嚴重程度為高。`spc_dsp6` 卡帶出自同一作者，所以兩者是一個來源，而不是兩個。
 
-這個卡帶帶有檢查，其預期值是在主機上取得的。透過 [sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python) 中的音訊單元驅動，其中 104 項在這裏得出判定，97 項一致，7 項不一致。[`conformance/cartridge.json`](conformance/cartridge.json) 保存每個判定，[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) 按原因把那 7 項分組。
+這個卡帶帶有檢查，其預期值是在主機上取得的。透過 [sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python) 中的音訊單元驅動，其中 104 項在這裏得出判定，全部 104 項一致。[`conformance/cartridge.json`](conformance/cartridge.json) 保存每個判定，[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) 列出曾經不一致的 7 項的三個原因。
 
 ### 語料庫
 
