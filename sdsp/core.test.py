@@ -28,6 +28,9 @@ ENDX = 0x7C
 RESET_FLAGS = 0xE0
 MUTE = 0x40
 ECHO_WRITES_OFF = 0x20
+BETWEEN_LATCH_AND_WRITE = 3
+BEFORE_OUTX_WRITE = 3
+WRITTEN = 0x55
 
 
 def a_machine(fill: int = 0) -> Part:
@@ -205,6 +208,34 @@ class RegisterTest(unittest.TestCase):
 
         # Assert
         self.assertEqual({voice.envelope_mode for voice in dsp.voices}, {sdsp.ENV_ATTACK})
+
+    def test_writing_the_envelope_readback_replaces_the_value_waiting_to_be_written(self) -> None:
+        # Arrange
+        dsp = keyed_on(a_voice_ram())
+        dsp.render(8)
+        while dsp.phase != BETWEEN_LATCH_AND_WRITE:
+            dsp.clock()
+        dsp.write(ENVX, WRITTEN)
+
+        # Act
+        dsp.run(2)
+
+        # Assert
+        self.assertEqual(dsp.read(ENVX), WRITTEN)
+
+    def test_and_writing_the_output_readback_does_the_same(self) -> None:
+        # Arrange
+        dsp = keyed_on(a_voice_ram())
+        dsp.render(8)
+        while dsp.phase != BEFORE_OUTX_WRITE:
+            dsp.clock()
+        dsp.write(OUTX, WRITTEN)
+
+        # Act
+        dsp.run(1)
+
+        # Assert
+        self.assertEqual(dsp.read(OUTX), WRITTEN)
 
     def test_writing_the_end_flags_clears_them(self) -> None:
         # Arrange

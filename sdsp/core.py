@@ -86,6 +86,10 @@ class Chip(Echo):
         self.registers[address] = value
         if address == REG_KON:
             self.new_kon = value
+        elif address & 0x0F == V_ENVX:
+            self.envx_buffer = value
+        elif address & 0x0F == V_OUTX:
+            self.outx_buffer = value
         elif address == REG_ENDX:
             self.registers[REG_ENDX] = 0
             self.endx_buffer = 0
