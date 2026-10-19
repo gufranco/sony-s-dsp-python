@@ -39,11 +39,11 @@ The sample directory at page `$02` points source 0 at one BRR block at `$0300`. 
 
 ## Install
 
-| Requirement | Version |
-|:--|:--|
-| Python | 3.12 or newer |
-| git | Any |
-| Docker | Only to rebuild the reference driver from [`conformance/ref/Dockerfile`](conformance/ref/Dockerfile) |
+| Requirement | Version                                                                                              |
+| :---------- | :--------------------------------------------------------------------------------------------------- |
+| Python      | 3.12 or newer                                                                                        |
+| git         | Any                                                                                                  |
+| Docker      | Only to rebuild the reference driver from [`conformance/ref/Dockerfile`](conformance/ref/Dockerfile) |
 
 ```bash
 git clone https://github.com/gufranco/sony-s-dsp-python.git
@@ -67,35 +67,35 @@ Releases follow [Semantic Versioning](https://semver.org/) and are cut from the 
 
 `sdsp.Chip(model, memory=None, seed=UNSET_SEED, gaussian=None)` builds one part. `model` is required. `memory` is any object with `read8(address)` and `write8(address, value)`, and the part builds a `SparseMemory` when it is left out. `seed` sets the power-on pattern of every register, counter, latch, decoded sample and position, which the part holds until the caller calls `reset()`. The noise generator is never drawn as 0, the one value its feedback cannot leave. The constructor never calls `reset()`, and no option makes it. `gaussian` replaces the interpolation kernel with a table of your own, checked by `check_kernel`.
 
-| Model | Aliases | Voices | Registers |
-|:--|:--|:--|:--|
-| `s-dsp` | `sdsp`, `sonysdsp`, `dsp`, `snesdsp` | 8 | 128 |
+| Model   | Aliases                              | Voices | Registers |
+| :------ | :----------------------------------- | :----- | :-------- |
+| `s-dsp` | `sdsp`, `sonysdsp`, `dsp`, `snesdsp` | 8      | 128       |
 
 A name is matched with case, hyphens and underscores ignored, so `SNES-DSP` builds `s-dsp`.
 
 ### Calls
 
-| Call | Effect |
-|:--|:--|
-| `read(address)` | Returns the register at `address & $7F` |
-| `write(address, value)` | Stores `value & $FF` at `address & $7F`. A write to KON is latched for the next KON sample. A write to ENDX clears it to 0 |
-| `reset()` | What the reset line does in `snes_spc`, the implementation the corpus was recorded from: clears every register and every latch, sets `FLG` to `$E0`, the noise generator to `$4000` and the every-other-sample toggle to 1, and silences all eight voices. Returns the part |
-| `clock()` | Runs the steps `PIPELINE` names for the current clock and moves to the next of the 32 |
-| `run(clocks)` | `clock()` that many times |
-| `render(samples)` | Runs `samples` times 32 clocks and returns the output as left and right values interleaved, two per sample |
-| `voice_1` to `voice_9`, `voice_3a`, `voice_3b`, `voice_3c`, `misc_27` to `misc_30`, `echo_22` to `echo_30` | The steps `PIPELINE` names. `clock()` calls them; a caller does not need to |
+| Call                                                                                                       | Effect                                                                                                                                                                                                                                                                      |
+| :--------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `read(address)`                                                                                            | Returns the register at `address & $7F`                                                                                                                                                                                                                                     |
+| `write(address, value)`                                                                                    | Stores `value & $FF` at `address & $7F`. A write to KON is latched for the next KON sample. A write to ENDX clears it to 0                                                                                                                                                  |
+| `reset()`                                                                                                  | What the reset line does in `snes_spc`, the implementation the corpus was recorded from: clears every register and every latch, sets `FLG` to `$E0`, the noise generator to `$4000` and the every-other-sample toggle to 1, and silences all eight voices. Returns the part |
+| `clock()`                                                                                                  | Runs the steps `PIPELINE` names for the current clock and moves to the next of the 32                                                                                                                                                                                       |
+| `run(clocks)`                                                                                              | `clock()` that many times                                                                                                                                                                                                                                                   |
+| `render(samples)`                                                                                          | Runs `samples` times 32 clocks and returns the output as left and right values interleaved, two per sample                                                                                                                                                                  |
+| `voice_1` to `voice_9`, `voice_3a`, `voice_3b`, `voice_3c`, `misc_27` to `misc_30`, `echo_22` to `echo_30` | The steps `PIPELINE` names. `clock()` calls them; a caller does not need to                                                                                                                                                                                                 |
 
 ### State
 
-| Attribute | Meaning |
-|:--|:--|
-| `model` | The canonical model name |
-| `memory` | The 64 KB audio RAM object the voices and the echo buffer read and write |
-| `registers` | The 128 registers as a `bytearray` |
-| `voices` | The eight `Voice` objects |
-| `phase` | Which of the 32 clocks runs next, 0 to 31 |
-| `rendered` | The output values produced since the last `render` |
-| `gaussian` | The kernel this part resamples through |
+| Attribute   | Meaning                                                                  |
+| :---------- | :----------------------------------------------------------------------- |
+| `model`     | The canonical model name                                                 |
+| `memory`    | The 64 KB audio RAM object the voices and the echo buffer read and write |
+| `registers` | The 128 registers as a `bytearray`                                       |
+| `voices`    | The eight `Voice` objects                                                |
+| `phase`     | Which of the 32 clocks runs next, 0 to 31                                |
+| `rendered`  | The output values produced since the last `render`                       |
+| `gaussian`  | The kernel this part resamples through                                   |
 
 A `Voice` holds `index`, `bit`, `base`, its BRR state in `brr_address`, `brr_offset`, `buffer` and `buffer_position`, its pitch position in `interpolation`, its envelope in `envelope`, `hidden_envelope`, `envelope_mode` and `envelope_out`, and `key_on_delay`.
 
@@ -145,25 +145,25 @@ Before the reset the registers hold the scrambled pattern, and address `$EC` rea
 
 ### Module contents
 
-| Name | Content |
-|:--|:--|
-| `sdsp.MODELS` | The `Model` records, keyed by canonical name |
-| `sdsp.Model` | A model record: `name`, `summary`, `voices`, `registers`, `aliases`, and `build(memory, **options)` |
-| `sdsp.Memory(size=0x10000, fill=None, seed=UNSET_SEED)` | Flat audio RAM. `fill` is a byte value or a byte string, and without it the contents are scrambled from `seed`. Addresses wrap at 16 bits |
-| `sdsp.SparseMemory(seed=UNSET_SEED)` | The same contract with no allocation. An unwritten address returns a byte mixed from the address and `seed`, and `cells` holds what was written |
-| `sdsp.scramble(size, seed=UNSET_SEED)` | The scrambled bytes `Memory` and the register file come up holding |
-| `sdsp.UNSET_SEED` | The default seed, `0x5A5A5A5A` |
-| `sdsp.Voice` | One voice and its state |
-| `sdsp.PIPELINE` | The schedule: for each of the 32 clocks, the steps that run, each a step name or a step name and a voice number |
-| `sdsp.VOICE_COUNT`, `sdsp.REGISTER_COUNT` | 8 and 128 |
-| `sdsp.ENV_RELEASE`, `sdsp.ENV_ATTACK`, `sdsp.ENV_DECAY`, `sdsp.ENV_SUSTAIN` | The envelope phases, 0 to 3, as `Voice.envelope_mode` holds them |
-| `sdsp.COUNTER_RATES` | The 32 periods, in samples, of the envelope and noise clocks, one per rate |
-| `sdsp.COUNTER_OFFSETS` | The 32 offsets that stagger rates sharing a period |
-| `sdsp.GAUSSIAN` | The 512 entry interpolation kernel |
-| `sdsp.check_kernel(table)` | Returns a kernel as a tuple, or raises `NotAKernel` naming the property and the entry that failed |
-| `sdsp.UnknownModelError` | Raised for a missing or unknown model name. The message lists the names accepted |
-| `sdsp.NotAKernel` | Raised by `check_kernel`, and by `Chip` when `gaussian` fails it |
-| `sdsp.__version__` | The installed version |
+| Name                                                                        | Content                                                                                                                                         |
+| :-------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sdsp.MODELS`                                                               | The `Model` records, keyed by canonical name                                                                                                    |
+| `sdsp.Model`                                                                | A model record: `name`, `summary`, `voices`, `registers`, `aliases`, and `build(memory, **options)`                                             |
+| `sdsp.Memory(size=0x10000, fill=None, seed=UNSET_SEED)`                     | Flat audio RAM. `fill` is a byte value or a byte string, and without it the contents are scrambled from `seed`. Addresses wrap at 16 bits       |
+| `sdsp.SparseMemory(seed=UNSET_SEED)`                                        | The same contract with no allocation. An unwritten address returns a byte mixed from the address and `seed`, and `cells` holds what was written |
+| `sdsp.scramble(size, seed=UNSET_SEED)`                                      | The scrambled bytes `Memory` and the register file come up holding                                                                              |
+| `sdsp.UNSET_SEED`                                                           | The default seed, `0x5A5A5A5A`                                                                                                                  |
+| `sdsp.Voice`                                                                | One voice and its state                                                                                                                         |
+| `sdsp.PIPELINE`                                                             | The schedule: for each of the 32 clocks, the steps that run, each a step name or a step name and a voice number                                 |
+| `sdsp.VOICE_COUNT`, `sdsp.REGISTER_COUNT`                                   | 8 and 128                                                                                                                                       |
+| `sdsp.ENV_RELEASE`, `sdsp.ENV_ATTACK`, `sdsp.ENV_DECAY`, `sdsp.ENV_SUSTAIN` | The envelope phases, 0 to 3, as `Voice.envelope_mode` holds them                                                                                |
+| `sdsp.COUNTER_RATES`                                                        | The 32 periods, in samples, of the envelope and noise clocks, one per rate                                                                      |
+| `sdsp.COUNTER_OFFSETS`                                                      | The 32 offsets that stagger rates sharing a period                                                                                              |
+| `sdsp.GAUSSIAN`                                                             | The 512 entry interpolation kernel                                                                                                              |
+| `sdsp.check_kernel(table)`                                                  | Returns a kernel as a tuple, or raises `NotAKernel` naming the property and the entry that failed                                               |
+| `sdsp.UnknownModelError`                                                    | Raised for a missing or unknown model name. The message lists the names accepted                                                                |
+| `sdsp.NotAKernel`                                                           | Raised by `check_kernel`, and by `Chip` when `gaussian` fails it                                                                                |
+| `sdsp.__version__`                                                          | The installed version                                                                                                                           |
 
 ```python
 import sdsp
@@ -214,16 +214,16 @@ Rate 0 has a period of 30,721 samples, longer than the counter's range of 30,720
 
 ### Command-line tools
 
-| Command | What it does | Exit codes |
-|:--|:--|:--|
-| `python3 sdsp/doctor.py` | The machine and checkout report above | 0 clean, 1 a check failed |
-| `python3 -m conformance.corpus [file]` | Replays every case in the corpus and compares the output digest | 0 all agree, 1 a case disagrees, 2 no corpus at the path |
-| `python3 -m conformance.capture <dump directory> <census out> [limit]` | Reads the 128 DSP registers out of `.spc` dumps you own and writes a census | 0 written, 1 no dumps found, 2 bad arguments or no directory |
-| `python3 -m conformance.documents [--check] [--only SUBSTRING]` | Fetches the manual into `docs/` and verifies its SHA-256. `--check` verifies without fetching | 0 verified, 1 refused or no match |
-| `python3 -m conformance.quotes` | Looks for every quoted sentence in [`conformance/hardware.json`](conformance/hardware.json) in the manual | 0 every quote located or no manual on this machine, 1 otherwise |
-| `python3 -m conformance.speed` | Measures `clock()` calls per second against a floor of 90,000 | 0 above the floor, 1 below |
-| `python3 -m conformance.links` | Probes every address in this README | 0 every address is live, 1 an address returns HTTP 404 or 410 |
-| `python3 -m conformance.package <wheel>` | Checks a built wheel ships every module and no test | 0 clean, 1 a fault or no wheel, 2 no argument |
+| Command                                                                | What it does                                                                                              | Exit codes                                                      |
+| :--------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------- |
+| `python3 sdsp/doctor.py`                                               | The machine and checkout report above                                                                     | 0 clean, 1 a check failed                                       |
+| `python3 -m conformance.corpus [file]`                                 | Replays every case in the corpus and compares the output digest                                           | 0 all agree, 1 a case disagrees, 2 no corpus at the path        |
+| `python3 -m conformance.capture <dump directory> <census out> [limit]` | Reads the 128 DSP registers out of `.spc` dumps you own and writes a census                               | 0 written, 1 no dumps found, 2 bad arguments or no directory    |
+| `python3 -m conformance.documents [--check] [--only SUBSTRING]`        | Fetches the manual into `docs/` and verifies its SHA-256. `--check` verifies without fetching             | 0 verified, 1 refused or no match                               |
+| `python3 -m conformance.quotes`                                        | Looks for every quoted sentence in [`conformance/hardware.json`](conformance/hardware.json) in the manual | 0 every quote located or no manual on this machine, 1 otherwise |
+| `python3 -m conformance.speed`                                         | Measures `clock()` calls per second against a floor of 90,000                                             | 0 above the floor, 1 below                                      |
+| `python3 -m conformance.links`                                         | Probes every address in this README                                                                       | 0 every address is live, 1 an address returns HTTP 404 or 410   |
+| `python3 -m conformance.package <wheel>`                               | Checks a built wheel ships every module and no test                                                       | 0 clean, 1 a fault or no wheel, 2 no argument                   |
 
 ## The thirty two clock schedule
 
@@ -273,15 +273,15 @@ There is one model. The S-DSP sits inside the S-SMP audio unit beside the SPC700
 
 ## Is it right
 
-| What | Held to | Kind of evidence |
-|:--|:--|:--|
-| Register map | Nintendo's table 3-7-1, every address this model names | Manufacturer |
-| Rate table | Table 3-7-4, the noise clock, all 32 rows | Manufacturer |
-| Attack times | Table 3-7-2, all 16 rows | Manufacturer |
-| Decay and sustain times | Table 3-7-2, all 39 rows, against one endpoint the manual does not print | Manufacturer, relative |
-| Whole-part output | 240 cases, 23,040 samples, against `snes_spc 0.9.0` | A second implementation |
-| Console checks | 97 of 104 verdicts in Shay Green's `spc_dsp6` cartridge agree | Values taken on a console |
-| Interpolation kernel | Length, shape and the four-tap sum | Self-check only, no artifact |
+| What                    | Held to                                                                  | Kind of evidence             |
+| :---------------------- | :----------------------------------------------------------------------- | :--------------------------- |
+| Register map            | Nintendo's table 3-7-1, every address this model names                   | Manufacturer                 |
+| Rate table              | Table 3-7-4, the noise clock, all 32 rows                                | Manufacturer                 |
+| Attack times            | Table 3-7-2, all 16 rows                                                 | Manufacturer                 |
+| Decay and sustain times | Table 3-7-2, all 39 rows, against one endpoint the manual does not print | Manufacturer, relative       |
+| Whole-part output       | 240 cases, 23,040 samples, against `snes_spc 0.9.0`                      | A second implementation      |
+| Console checks          | 97 of 104 verdicts in Shay Green's `spc_dsp6` cartridge agree            | Values taken on a console    |
+| Interpolation kernel    | Length, shape and the four-tap sum                                       | Self-check only, no artifact |
 
 [`conformance/hardware.json`](conformance/hardware.json) carries each figure from the manual with its page, and [`conformance/hardware.test.py`](conformance/hardware.test.py) holds them to what the part does when driven and to the tables the package exports. The manual's text layer stops at the figures, so every table was read off a rendered page image. `python3 -m conformance.quotes` locates 28 quoted sentences in the manual.
 
@@ -299,11 +299,11 @@ The kernel is on the die, has never been dumped, and circulates as a printed tab
 
 `check_kernel` holds a supplied table to what the interpolator needs:
 
-| Property | Why the part needs it |
-|:--|:--|
-| 512 entries | The interpolator indexes up to `forward + 256` |
-| Every tap a signed 16-bit word | The multiply is a signed 16-bit one |
-| Rises from 0 and never dips | A dip reverses the curve |
+| Property                                                        | Why the part needs it                                                    |
+| :-------------------------------------------------------------- | :----------------------------------------------------------------------- |
+| 512 entries                                                     | The interpolator indexes up to `forward + 256`                           |
+| Every tap a signed 16-bit word                                  | The multiply is a signed 16-bit one                                      |
+| Rises from 0 and never dips                                     | A dip reverses the curve                                                 |
 | The four taps of every position sum to 2048, within 0.2 percent | Otherwise a voice's volume depends on where between two samples it lands |
 
 Two different tables can pass, so passing means the table could be the part's. The kernel is held on each part, so two parts in one process can carry different tables.
@@ -332,13 +332,13 @@ To read a collection of your own, `python3 -m conformance.capture /path/to/spc/c
 
 ## Working on it
 
-| Need | Where |
-|:--|:--|
-| Every gate and the order to run them | [CONTRIBUTING.md](CONTRIBUTING.md) |
-| The same material for a coding agent | [AGENTS.md](AGENTS.md) |
-| The standard this repository shares with the rest of the family | [FAMILY.md](FAMILY.md) |
-| Bug reports | [GitHub Issues](https://github.com/gufranco/sony-s-dsp-python/issues) |
-| Security reports | [SECURITY.md](SECURITY.md) |
+| Need                                                            | Where                                                                 |
+| :-------------------------------------------------------------- | :-------------------------------------------------------------------- |
+| Every gate and the order to run them                            | [CONTRIBUTING.md](CONTRIBUTING.md)                                    |
+| The same material for a coding agent                            | [AGENTS.md](AGENTS.md)                                                |
+| The standard this repository shares with the rest of the family | [FAMILY.md](FAMILY.md)                                                |
+| Bug reports                                                     | [GitHub Issues](https://github.com/gufranco/sony-s-dsp-python/issues) |
+| Security reports                                                | [SECURITY.md](SECURITY.md)                                            |
 
 ```bash
 uvx ruff@0.16.3 format --check .
@@ -351,7 +351,7 @@ Each module has a test file beside it, named after it, and each runs on its own 
 
 ## References
 
-- *SNES Development Manual, Book I*, Section 3, Nintendo of America Inc., undated. 240 pages, 21,022,582 bytes, SHA-256 `f1405241000046abba7849376d2ec53cf85f1ad2e9950d69a7c2cf1f3ff6b791`. It is not redistributable and is not in this repository. `python3 -m conformance.documents` downloads it from https://archive.org/download/SNESDevManual/book1_text.pdf into `docs/` and refuses any other file. Sony published no data sheet for the part.
+- _SNES Development Manual, Book I_, Section 3, Nintendo of America Inc., undated. 240 pages, 21,022,582 bytes, SHA-256 `f1405241000046abba7849376d2ec53cf85f1ad2e9950d69a7c2cf1f3ff6b791`. It is not redistributable and is not in this repository. `python3 -m conformance.documents` downloads it from https://archive.org/download/SNESDevManual/book1_text.pdf into `docs/` and refuses any other file. Sony published no data sheet for the part.
 - `snes_spc 0.9.0` by Shay Green, as snes9x 1.63 carries it at `apu/bapu/dsp/SPC_DSP.cpp`, for the corpus audio. [`conformance/ref/Dockerfile`](conformance/ref/Dockerfile) builds it from the snes9x `1.63` tag; no copy is vendored.
 - Shay Green's `spc_dsp6` test cartridge, for the 104 console verdicts in [`conformance/cartridge.json`](conformance/cartridge.json).
 

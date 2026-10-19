@@ -68,16 +68,16 @@ disagreement used to hide every check after it. The run now records the verdict
 and turns that check's four conditional branches into no-ops so it carries on.
 Nothing rewrites what a check expects: a verdict is ignored, never changed.
 
-| Group | Agree | Disagree |
-| --- | ---: | ---: |
-| Order | 19 | 0 |
-| Timing | 39 | 2 |
-| KON | 17 | 1 |
-| Misc | 8 | 1 |
-| Random | 8 | 0 |
-| Envelope | 4 | 3 |
-| Echo | 2 | 0 |
-| **Total** | **97** | **7** |
+| Group     |  Agree | Disagree |
+| --------- | -----: | -------: |
+| Order     |     19 |        0 |
+| Timing    |     39 |        2 |
+| KON       |     17 |        1 |
+| Misc      |      8 |        1 |
+| Random    |      8 |        0 |
+| Envelope  |      4 |        3 |
+| Echo      |      2 |        0 |
+| **Total** | **97** |    **7** |
 
 Every verdict is in
 [`conformance/cartridge.json`](conformance/cartridge.json) with the value a
@@ -132,9 +132,9 @@ same file, with no console attached at all.
 
 His library answers two different ways depending on nothing but how it is called:
 
-| `snes_spc 0.9.0`, same program, only the call size changed | Result |
-| --- | --- |
-| one sample per call | `a2 c9 a2 2b` |
+| `snes_spc 0.9.0`, same program, only the call size changed      | Result        |
+| --------------------------------------------------------------- | ------------- |
+| one sample per call                                             | `a2 c9 a2 2b` |
 | two, sixteen, two hundred and fifty six, four thousand per call | `00 ed 26 be` |
 
 This family, stepped one instruction at a time, gives `a2 c9 a2 2b`, which is
@@ -189,14 +189,14 @@ a mismatch. Fitted by least squares against all 512 entries on 2026-08-25, takin
 entry `u` as the kernel at distance `(511.5 - u) / 256`, the closest candidates
 leave these peak errors on a maximum of 1305:
 
-| Candidate | Peak error | Mean error |
-|:--|--:|--:|
-| cos^3.5(pi d / 4) | 18 | 9.6 |
-| Gaussian, sigma 0.63 | 21 | 10.5 |
-| Cubic B-spline | 38 | 18.4 |
-| Hann squared | 44 | 21.6 |
-| cos^2(pi d / 4) | 191 | 109.1 |
-| Catmull-Rom | 380 | 178.9 |
+| Candidate            | Peak error | Mean error |
+| :------------------- | ---------: | ---------: |
+| cos^3.5(pi d / 4)    |         18 |        9.6 |
+| Gaussian, sigma 0.63 |         21 |       10.5 |
+| Cubic B-spline       |         38 |       18.4 |
+| Hann squared         |         44 |       21.6 |
+| cos^2(pi d / 4)      |        191 |      109.1 |
+| Catmull-Rom          |        380 |      178.9 |
 
 Nothing lands inside rounding, so the table is stored rather than computed. The
 search is written down with its numbers so the next person to have the idea finds

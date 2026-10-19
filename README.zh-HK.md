@@ -39,10 +39,10 @@ ENVX 0x7f, OUTX 0x37, ENDX 0x01
 
 ## 安裝
 
-| 需求 | 版本 |
-|:--|:--|
-| Python | 3.12 或更新 |
-| git | 任何版本 |
+| 需求   | 版本                                                                                     |
+| :----- | :--------------------------------------------------------------------------------------- |
+| Python | 3.12 或更新                                                                              |
+| git    | 任何版本                                                                                 |
 | Docker | 只在從 [`conformance/ref/Dockerfile`](conformance/ref/Dockerfile) 重建參考驅動程式時需要 |
 
 ```bash
@@ -67,35 +67,35 @@ python3 sdsp/doctor.py
 
 `sdsp.Chip(model, memory=None, seed=UNSET_SEED, gaussian=None)` 建立一個晶片。`model` 為必填。`memory` 可以是任何具有 `read8(address)` 和 `write8(address, value)` 的物件，省略時晶片會建立一個 `SparseMemory`。`seed` 設定每個暫存器、計數器、鎖存器、已解碼樣本和位置的開機圖樣，晶片會一直保持該圖樣，直至呼叫方呼叫 `reset()`。雜訊產生器永遠不會取到 0，這是其回饋無法離開的唯一值。建構函式從不呼叫 `reset()`，亦沒有任何選項令它呼叫。`gaussian` 以你自己的表取代插值核，並由 `check_kernel` 檢查。
 
-| 型號 | 別名 | 聲部 | 暫存器 |
-|:--|:--|:--|:--|
-| `s-dsp` | `sdsp`, `sonysdsp`, `dsp`, `snesdsp` | 8 | 128 |
+| 型號    | 別名                                 | 聲部 | 暫存器 |
+| :------ | :----------------------------------- | :--- | :----- |
+| `s-dsp` | `sdsp`, `sonysdsp`, `dsp`, `snesdsp` | 8    | 128    |
 
 比對名稱時忽略大小寫、連字號和底線，所以 `SNES-DSP` 會建立 `s-dsp`。
 
 ### 呼叫
 
-| 呼叫 | 效果 |
-|:--|:--|
-| `read(address)` | 傳回位於 `address & $7F` 的暫存器 |
-| `write(address, value)` | 把 `value & $FF` 存到 `address & $7F`。寫入 KON 的值會鎖存到下一個 KON 樣本。寫入 ENDX 會把它清為 0 |
-| `reset()` | 重設線在錄製語料庫所用的實作 `snes_spc` 中的動作：清除所有暫存器和所有鎖存器，把 `FLG` 設為 `$E0`、雜訊產生器設為 `$4000`、隔樣本切換位設為 1，並令全部八個聲部靜音。傳回該晶片 |
-| `clock()` | 執行 `PIPELINE` 為目前時鐘指定的步驟，然後移到 32 個時鐘中的下一個 |
-| `run(clocks)` | 執行 `clock()` 指定的次數 |
-| `render(samples)` | 運行 `samples` 乘以 32 個時鐘，並以左右值交錯的形式傳回輸出，每個樣本兩個值 |
-| `voice_1` 至 `voice_9`、`voice_3a`、`voice_3b`、`voice_3c`、`misc_27` 至 `misc_30`、`echo_22` 至 `echo_30` | `PIPELINE` 指定的步驟。由 `clock()` 呼叫，呼叫者無須自行呼叫 |
+| 呼叫                                                                                                       | 效果                                                                                                                                                                            |
+| :--------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `read(address)`                                                                                            | 傳回位於 `address & $7F` 的暫存器                                                                                                                                               |
+| `write(address, value)`                                                                                    | 把 `value & $FF` 存到 `address & $7F`。寫入 KON 的值會鎖存到下一個 KON 樣本。寫入 ENDX 會把它清為 0                                                                             |
+| `reset()`                                                                                                  | 重設線在錄製語料庫所用的實作 `snes_spc` 中的動作：清除所有暫存器和所有鎖存器，把 `FLG` 設為 `$E0`、雜訊產生器設為 `$4000`、隔樣本切換位設為 1，並令全部八個聲部靜音。傳回該晶片 |
+| `clock()`                                                                                                  | 執行 `PIPELINE` 為目前時鐘指定的步驟，然後移到 32 個時鐘中的下一個                                                                                                              |
+| `run(clocks)`                                                                                              | 執行 `clock()` 指定的次數                                                                                                                                                       |
+| `render(samples)`                                                                                          | 運行 `samples` 乘以 32 個時鐘，並以左右值交錯的形式傳回輸出，每個樣本兩個值                                                                                                     |
+| `voice_1` 至 `voice_9`、`voice_3a`、`voice_3b`、`voice_3c`、`misc_27` 至 `misc_30`、`echo_22` 至 `echo_30` | `PIPELINE` 指定的步驟。由 `clock()` 呼叫，呼叫者無須自行呼叫                                                                                                                    |
 
 ### 狀態
 
-| 屬性 | 意義 |
-|:--|:--|
-| `model` | 標準型號名稱 |
-| `memory` | 聲部和回聲緩衝區讀寫的 64 KB 音訊 RAM 物件 |
-| `registers` | 以 `bytearray` 表示的 128 個暫存器 |
-| `voices` | 八個 `Voice` 物件 |
-| `phase` | 下一個運行的是 32 個時鐘中的哪一個，0 至 31 |
-| `rendered` | 自上次 `render` 以來產生的輸出值 |
-| `gaussian` | 這個晶片重新取樣時使用的插值核 |
+| 屬性        | 意義                                        |
+| :---------- | :------------------------------------------ |
+| `model`     | 標準型號名稱                                |
+| `memory`    | 聲部和回聲緩衝區讀寫的 64 KB 音訊 RAM 物件  |
+| `registers` | 以 `bytearray` 表示的 128 個暫存器          |
+| `voices`    | 八個 `Voice` 物件                           |
+| `phase`     | 下一個運行的是 32 個時鐘中的哪一個，0 至 31 |
+| `rendered`  | 自上次 `render` 以來產生的輸出值            |
+| `gaussian`  | 這個晶片重新取樣時使用的插值核              |
 
 一個 `Voice` 包含 `index`、`bit`、`base`，BRR 狀態在 `brr_address`、`brr_offset`、`buffer` 和 `buffer_position`，音高位置在 `interpolation`，包絡在 `envelope`、`hidden_envelope`、`envelope_mode` 和 `envelope_out`，以及 `key_on_delay`。
 
@@ -145,25 +145,25 @@ True 0xe0 0x00
 
 ### 模組內容
 
-| 名稱 | 內容 |
-|:--|:--|
-| `sdsp.MODELS` | `Model` 記錄，以標準名稱為鍵 |
-| `sdsp.Model` | 型號記錄：`name`、`summary`、`voices`、`registers`、`aliases`，以及 `build(memory, **options)` |
-| `sdsp.Memory(size=0x10000, fill=None, seed=UNSET_SEED)` | 平面音訊 RAM。`fill` 是一個位元組值或位元組串，沒有它時內容由 `seed` 打亂產生。位址在 16 位元處迴繞 |
-| `sdsp.SparseMemory(seed=UNSET_SEED)` | 相同的約定，但不分配記憶體。未寫入的位址傳回由位址和 `seed` 混合而成的位元組，`cells` 保存已寫入的內容 |
-| `sdsp.scramble(size, seed=UNSET_SEED)` | `Memory` 和暫存器檔案啟動時保存的打亂位元組 |
-| `sdsp.UNSET_SEED` | 預設種子，`0x5A5A5A5A` |
-| `sdsp.Voice` | 一個聲部及其狀態 |
-| `sdsp.PIPELINE` | 排程：對 32 個時鐘中的每一個，列出運行的步驟，每項是一個步驟名稱，或一個步驟名稱加一個聲部編號 |
-| `sdsp.VOICE_COUNT`、`sdsp.REGISTER_COUNT` | 8 和 128 |
-| `sdsp.ENV_RELEASE`、`sdsp.ENV_ATTACK`、`sdsp.ENV_DECAY`、`sdsp.ENV_SUSTAIN` | 包絡階段，0 至 3，即 `Voice.envelope_mode` 保存的值 |
-| `sdsp.COUNTER_RATES` | 包絡和噪音時鐘的 32 個週期，以樣本為單位，每個速率一個 |
-| `sdsp.COUNTER_OFFSETS` | 把共用同一週期的速率錯開的 32 個偏移 |
-| `sdsp.GAUSSIAN` | 有 512 項的插值核 |
-| `sdsp.check_kernel(table)` | 以 tuple 傳回插值核，或引發 `NotAKernel`，並指出不符合的屬性和項目 |
-| `sdsp.UnknownModelError` | 型號名稱缺失或未知時引發。訊息列出可接受的名稱 |
-| `sdsp.NotAKernel` | 由 `check_kernel` 引發，`gaussian` 不符合時亦由 `Chip` 引發 |
-| `sdsp.__version__` | 已安裝的版本 |
+| 名稱                                                                        | 內容                                                                                                   |
+| :-------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------- |
+| `sdsp.MODELS`                                                               | `Model` 記錄，以標準名稱為鍵                                                                           |
+| `sdsp.Model`                                                                | 型號記錄：`name`、`summary`、`voices`、`registers`、`aliases`，以及 `build(memory, **options)`         |
+| `sdsp.Memory(size=0x10000, fill=None, seed=UNSET_SEED)`                     | 平面音訊 RAM。`fill` 是一個位元組值或位元組串，沒有它時內容由 `seed` 打亂產生。位址在 16 位元處迴繞    |
+| `sdsp.SparseMemory(seed=UNSET_SEED)`                                        | 相同的約定，但不分配記憶體。未寫入的位址傳回由位址和 `seed` 混合而成的位元組，`cells` 保存已寫入的內容 |
+| `sdsp.scramble(size, seed=UNSET_SEED)`                                      | `Memory` 和暫存器檔案啟動時保存的打亂位元組                                                            |
+| `sdsp.UNSET_SEED`                                                           | 預設種子，`0x5A5A5A5A`                                                                                 |
+| `sdsp.Voice`                                                                | 一個聲部及其狀態                                                                                       |
+| `sdsp.PIPELINE`                                                             | 排程：對 32 個時鐘中的每一個，列出運行的步驟，每項是一個步驟名稱，或一個步驟名稱加一個聲部編號         |
+| `sdsp.VOICE_COUNT`、`sdsp.REGISTER_COUNT`                                   | 8 和 128                                                                                               |
+| `sdsp.ENV_RELEASE`、`sdsp.ENV_ATTACK`、`sdsp.ENV_DECAY`、`sdsp.ENV_SUSTAIN` | 包絡階段，0 至 3，即 `Voice.envelope_mode` 保存的值                                                    |
+| `sdsp.COUNTER_RATES`                                                        | 包絡和噪音時鐘的 32 個週期，以樣本為單位，每個速率一個                                                 |
+| `sdsp.COUNTER_OFFSETS`                                                      | 把共用同一週期的速率錯開的 32 個偏移                                                                   |
+| `sdsp.GAUSSIAN`                                                             | 有 512 項的插值核                                                                                      |
+| `sdsp.check_kernel(table)`                                                  | 以 tuple 傳回插值核，或引發 `NotAKernel`，並指出不符合的屬性和項目                                     |
+| `sdsp.UnknownModelError`                                                    | 型號名稱缺失或未知時引發。訊息列出可接受的名稱                                                         |
+| `sdsp.NotAKernel`                                                           | 由 `check_kernel` 引發，`gaussian` 不符合時亦由 `Chip` 引發                                            |
+| `sdsp.__version__`                                                          | 已安裝的版本                                                                                           |
 
 ```python
 import sdsp
@@ -214,16 +214,16 @@ True True
 
 ### 命令列工具
 
-| 命令 | 作用 | 結束代碼 |
-|:--|:--|:--|
-| `python3 sdsp/doctor.py` | 上文所述的機器和簽出副本報告 | 0 正常，1 有檢查失敗 |
-| `python3 -m conformance.corpus [file]` | 重播語料庫中的每個案例，並比較輸出摘要 | 0 全部一致，1 有案例不一致，2 路徑上沒有語料庫 |
-| `python3 -m conformance.capture <dump directory> <census out> [limit]` | 從你擁有的 `.spc` 傾印中讀出 128 個 DSP 暫存器，並寫出普查 | 0 已寫出，1 找不到傾印，2 參數錯誤或沒有目錄 |
-| `python3 -m conformance.documents [--check] [--only SUBSTRING]` | 把手冊下載到 `docs/` 並驗證其 SHA-256。`--check` 只驗證，不下載 | 0 已驗證，1 被拒絕或不相符 |
-| `python3 -m conformance.quotes` | 在手冊中尋找 [`conformance/hardware.json`](conformance/hardware.json) 裏的每一段引文 | 0 每段引文都找到或這部機器上沒有手冊，1 其他情況 |
-| `python3 -m conformance.speed` | 量度每秒 `clock()` 呼叫次數，下限為 90,000 | 0 高於下限，1 低於下限 |
-| `python3 -m conformance.links` | 探測這份 README 中的每個位址 | 0 每個位址都有效，1 有位址傳回 HTTP 404 或 410 |
-| `python3 -m conformance.package <wheel>` | 檢查已建置的 wheel 包含所有模組且不含測試 | 0 正常，1 有錯誤或沒有 wheel，2 沒有參數 |
+| 命令                                                                   | 作用                                                                                 | 結束代碼                                         |
+| :--------------------------------------------------------------------- | :----------------------------------------------------------------------------------- | :----------------------------------------------- |
+| `python3 sdsp/doctor.py`                                               | 上文所述的機器和簽出副本報告                                                         | 0 正常，1 有檢查失敗                             |
+| `python3 -m conformance.corpus [file]`                                 | 重播語料庫中的每個案例，並比較輸出摘要                                               | 0 全部一致，1 有案例不一致，2 路徑上沒有語料庫   |
+| `python3 -m conformance.capture <dump directory> <census out> [limit]` | 從你擁有的 `.spc` 傾印中讀出 128 個 DSP 暫存器，並寫出普查                           | 0 已寫出，1 找不到傾印，2 參數錯誤或沒有目錄     |
+| `python3 -m conformance.documents [--check] [--only SUBSTRING]`        | 把手冊下載到 `docs/` 並驗證其 SHA-256。`--check` 只驗證，不下載                      | 0 已驗證，1 被拒絕或不相符                       |
+| `python3 -m conformance.quotes`                                        | 在手冊中尋找 [`conformance/hardware.json`](conformance/hardware.json) 裏的每一段引文 | 0 每段引文都找到或這部機器上沒有手冊，1 其他情況 |
+| `python3 -m conformance.speed`                                         | 量度每秒 `clock()` 呼叫次數，下限為 90,000                                           | 0 高於下限，1 低於下限                           |
+| `python3 -m conformance.links`                                         | 探測這份 README 中的每個位址                                                         | 0 每個位址都有效，1 有位址傳回 HTTP 404 或 410   |
+| `python3 -m conformance.package <wheel>`                               | 檢查已建置的 wheel 包含所有模組且不含測試                                            | 0 正常，1 有錯誤或沒有 wheel，2 沒有參數         |
 
 ## 三十二時鐘排程
 
@@ -273,15 +273,15 @@ s-dsp s-dsp s-dsp
 
 ## 是否正確
 
-| 項目 | 依據 | 證據類型 |
-|:--|:--|:--|
-| 暫存器映射 | Nintendo 的表 3-7-1，涵蓋這個型號指定的每個位址 | 製造商 |
-| 速率表 | 表 3-7-4，噪音時鐘，全部 32 行 | 製造商 |
-| 起音時間 | 表 3-7-2，全部 16 行 | 製造商 |
-| 衰減和延音時間 | 表 3-7-2，全部 39 行，對照手冊沒有印出的一個終點 | 製造商，相對 |
-| 整個晶片的輸出 | 240 個案例，23,040 個樣本，對照 `snes_spc 0.9.0` | 第二個實現 |
-| 主機檢查 | Shay Green 的 `spc_dsp6` 卡帶中 104 個判定有 97 個一致 | 在主機上取得的值 |
-| 插值核 | 長度、形狀和四個抽頭之和 | 只有自我檢查，沒有實物 |
+| 項目           | 依據                                                   | 證據類型               |
+| :------------- | :----------------------------------------------------- | :--------------------- |
+| 暫存器映射     | Nintendo 的表 3-7-1，涵蓋這個型號指定的每個位址        | 製造商                 |
+| 速率表         | 表 3-7-4，噪音時鐘，全部 32 行                         | 製造商                 |
+| 起音時間       | 表 3-7-2，全部 16 行                                   | 製造商                 |
+| 衰減和延音時間 | 表 3-7-2，全部 39 行，對照手冊沒有印出的一個終點       | 製造商，相對           |
+| 整個晶片的輸出 | 240 個案例，23,040 個樣本，對照 `snes_spc 0.9.0`       | 第二個實現             |
+| 主機檢查       | Shay Green 的 `spc_dsp6` 卡帶中 104 個判定有 97 個一致 | 在主機上取得的值       |
+| 插值核         | 長度、形狀和四個抽頭之和                               | 只有自我檢查，沒有實物 |
 
 [`conformance/hardware.json`](conformance/hardware.json) 記錄手冊中的每個數字及其頁碼，[`conformance/hardware.test.py`](conformance/hardware.test.py) 把它們與驅動晶片時的實際行為及套件匯出的表比較。手冊的文字層到了圖表就中斷，所以每個表都是從渲染出的頁面圖像讀出的。`python3 -m conformance.quotes` 在手冊中找到 28 段引文。
 
@@ -299,11 +299,11 @@ s-dsp s-dsp s-dsp
 
 `check_kernel` 以插值器的需要來檢查提供的表：
 
-| 屬性 | 晶片為何需要它 |
-|:--|:--|
-| 512 項 | 插值器的索引最高到 `forward + 256` |
-| 每個抽頭都是有號 16 位元字 | 乘法是有號 16 位元乘法 |
-| 從 0 上升且從不回落 | 回落會令曲線反轉 |
+| 屬性                                            | 晶片為何需要它                                     |
+| :---------------------------------------------- | :------------------------------------------------- |
+| 512 項                                          | 插值器的索引最高到 `forward + 256`                 |
+| 每個抽頭都是有號 16 位元字                      | 乘法是有號 16 位元乘法                             |
+| 從 0 上升且從不回落                             | 回落會令曲線反轉                                   |
 | 每個位置的四個抽頭之和為 2048，誤差在 0.2% 以內 | 否則聲部的音量會取決於它落在兩個樣本之間的哪個位置 |
 
 兩個不同的表都可以通過，所以通過只表示這個表有可能是晶片內的那個。插值核保存在每個晶片上，所以同一個程序中的兩個晶片可以帶不同的表。
@@ -332,13 +332,13 @@ Shay Green 的 `snes_spc 0.9.0`，即 snes9x 在 `apu/bapu/dsp/SPC_DSP.cpp` 所�
 
 ## 參與開發
 
-| 需要 | 位置 |
-|:--|:--|
-| 所有關卡檢查及其運行順序 | [CONTRIBUTING.md](CONTRIBUTING.md) |
-| 給編程代理的同一份資料 | [AGENTS.md](AGENTS.md) |
-| 這個儲存庫與同系列其他儲存庫共用的標準 | [FAMILY.md](FAMILY.md) |
-| 錯誤報告 | [GitHub Issues](https://github.com/gufranco/sony-s-dsp-python/issues) |
-| 安全報告 | [SECURITY.md](SECURITY.md) |
+| 需要                                   | 位置                                                                  |
+| :------------------------------------- | :-------------------------------------------------------------------- |
+| 所有關卡檢查及其運行順序               | [CONTRIBUTING.md](CONTRIBUTING.md)                                    |
+| 給編程代理的同一份資料                 | [AGENTS.md](AGENTS.md)                                                |
+| 這個儲存庫與同系列其他儲存庫共用的標準 | [FAMILY.md](FAMILY.md)                                                |
+| 錯誤報告                               | [GitHub Issues](https://github.com/gufranco/sony-s-dsp-python/issues) |
+| 安全報告                               | [SECURITY.md](SECURITY.md)                                            |
 
 ```bash
 uvx ruff@0.16.3 format --check .
@@ -351,7 +351,7 @@ python3 sdsp/core.test.py
 
 ## 參考資料
 
-- *SNES Development Manual, Book I*，第 3 節，Nintendo of America Inc.，未註明日期。240 頁，21,022,582 位元組，SHA-256 `f1405241000046abba7849376d2ec53cf85f1ad2e9950d69a7c2cf1f3ff6b791`。它不可轉發，也不在這個儲存庫中。`python3 -m conformance.documents` 從 https://archive.org/download/SNESDevManual/book1_text.pdf 把它下載到 `docs/`，並拒絕任何其他檔案。Sony 沒有為這個晶片發佈數據手冊。
+- _SNES Development Manual, Book I_，第 3 節，Nintendo of America Inc.，未註明日期。240 頁，21,022,582 位元組，SHA-256 `f1405241000046abba7849376d2ec53cf85f1ad2e9950d69a7c2cf1f3ff6b791`。它不可轉發，也不在這個儲存庫中。`python3 -m conformance.documents` 從 https://archive.org/download/SNESDevManual/book1_text.pdf 把它下載到 `docs/`，並拒絕任何其他檔案。Sony 沒有為這個晶片發佈數據手冊。
 - Shay Green 的 `snes_spc 0.9.0`，即 snes9x 1.63 在 `apu/bapu/dsp/SPC_DSP.cpp` 所帶的版本，用於語料庫的音訊。[`conformance/ref/Dockerfile`](conformance/ref/Dockerfile) 從 snes9x 的 `1.63` 標籤建置它；儲存庫中沒有附帶副本。
 - Shay Green 的 `spc_dsp6` 測試卡帶，用於 [`conformance/cartridge.json`](conformance/cartridge.json) 中的 104 個主機判定。
 

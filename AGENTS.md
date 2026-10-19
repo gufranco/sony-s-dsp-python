@@ -27,12 +27,12 @@ part's own schedule rather than a caller's budget.
 arrives holding the power-on pattern. The caller calls `reset()` where the board
 would pulse the line, and the constructor never does.
 
-| Call | What it does |
-|:--|:--|
-| `clock()` | One of the thirty two clocks a sample is made of |
-| `read(address)`, `write(address, value)` | The register file, as a host reaches it |
-| `reset()` | The reset line, handed back so a caller can chain |
-| `voices` | The eight, each holding its own envelope and BRR state |
+| Call                                     | What it does                                           |
+| :--------------------------------------- | :----------------------------------------------------- |
+| `clock()`                                | One of the thirty two clocks a sample is made of       |
+| `read(address)`, `write(address, value)` | The register file, as a host reaches it                |
+| `reset()`                                | The reset line, handed back so a caller can chain      |
+| `voices`                                 | The eight, each holding its own envelope and BRR state |
 
 ## The authority ladder
 
@@ -145,6 +145,18 @@ The coverage exclusions carry none either:
 - `@unittest\.skipUnless\(SOLD_AS_A_COMPONENT,`, `^def machine_mentions\(` and
   `^def listing\(` in the coverage exclusions: this part only existed inside one
   machine, so the family sweep for machine names is skipped here.
+
+The formatter's ignores in [`.prettierignore`](.prettierignore) carry no
+comments either, so their reasons live here:
+
+- `pnpm-lock.yaml` and `package-lock.json`: the package manager writes them, in
+  its own layout, on every install.
+- `node_modules/`, `.venv/`, `venv/`, `build/`, `dist/` and `*.egg-info/`:
+  installed or built, never written by hand.
+- `.coverage`, `coverage.json`, `htmlcov/` and the tool caches: the output of a
+  run, never committed.
+- `docs/`, `specs/`, `.work/` and `.claude/`: local working material, never
+  committed.
 
 ## Layout
 

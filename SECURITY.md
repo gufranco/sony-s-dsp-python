@@ -10,12 +10,12 @@ about what a malformed input can make the code do.
 
 ## What is in scope
 
-| Class | Example |
-|-------|---------|
-| Supply chain | A dependency or a pinned action that has been compromised |
+| Class           | Example                                                                                 |
+| --------------- | --------------------------------------------------------------------------------------- |
+| Supply chain    | A dependency or a pinned action that has been compromised                               |
 | Malformed input | A crafted corpus or dump that makes a runner allocate without bound or loop without end |
-| Path handling | An input that causes a write outside the directory the caller named |
-| Dump handling | A crafted music dump that makes the capture tool read or write outside what it declared |
+| Path handling   | An input that causes a write outside the directory the caller named                     |
+| Dump handling   | A crafted music dump that makes the capture tool read or write outside what it declared |
 
 ## What is not
 

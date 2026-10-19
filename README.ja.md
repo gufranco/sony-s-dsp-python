@@ -39,10 +39,10 @@ ENVX 0x7f, OUTX 0x37, ENDX 0x01
 
 ## インストール
 
-| 要件 | バージョン |
-|:--|:--|
-| Python | 3.12以降 |
-| git | 任意 |
+| 要件   | バージョン                                                                                               |
+| :----- | :------------------------------------------------------------------------------------------------------- |
+| Python | 3.12以降                                                                                                 |
+| git    | 任意                                                                                                     |
 | Docker | [`conformance/ref/Dockerfile`](conformance/ref/Dockerfile)からリファレンスドライバを再ビルドする場合のみ |
 
 ```bash
@@ -67,35 +67,35 @@ python3 sdsp/doctor.py
 
 `sdsp.Chip(model, memory=None, seed=UNSET_SEED, gaussian=None)`はチップを1つ構築します。`model`は必須です。`memory`は`read8(address)`と`write8(address, value)`を持つ任意のオブジェクトで、省略するとチップが`SparseMemory`を構築します。`seed`はすべてのレジスタ、カウンタ、ラッチ、デコード済みサンプルと位置の電源投入時のパターンを設定し、チップは呼び出し側が`reset()`を呼ぶまでそのパターンを保持します。ノイズジェネレータが0として引かれることはありません。0はそのフィードバックが抜け出せない唯一の値です。コンストラクタが`reset()`を呼ぶことはなく、呼ばせるオプションもありません。`gaussian`は補間カーネルを独自のテーブルに置き換え、そのテーブルは`check_kernel`で検査されます。
 
-| モデル | 別名 | ボイス数 | レジスタ数 |
-|:--|:--|:--|:--|
-| `s-dsp` | `sdsp`, `sonysdsp`, `dsp`, `snesdsp` | 8 | 128 |
+| モデル  | 別名                                 | ボイス数 | レジスタ数 |
+| :------ | :----------------------------------- | :------- | :--------- |
+| `s-dsp` | `sdsp`, `sonysdsp`, `dsp`, `snesdsp` | 8        | 128        |
 
 名前は大文字小文字、ハイフン、アンダースコアを無視して照合されるので、`SNES-DSP`で`s-dsp`が構築されます。
 
 ### 呼び出し
 
-| 呼び出し | 効果 |
-|:--|:--|
-| `read(address)` | `address & $7F`のレジスタを返します |
-| `write(address, value)` | `value & $FF`を`address & $7F`に格納します。KONへの書き込みは次のKONサンプルまでラッチされます。ENDXへの書き込みはENDXを0にクリアします |
-| `reset()` | コーパスを記録した実装である`snes_spc`でのリセットラインの動作です。すべてのレジスタとすべてのラッチをクリアし、`FLG`を`$E0`に、ノイズジェネレータを`$4000`に、1サンプルおきのトグルを1に設定し、8つのボイスすべてを無音にします。チップを返します |
-| `clock()` | 現在のクロックについて`PIPELINE`が指定するステップを実行し、32クロックのうち次のクロックに進みます |
-| `run(clocks)` | `clock()`をその回数だけ実行します |
-| `render(samples)` | `samples`の32倍のクロックを実行し、出力を左右の値を交互に並べて、1サンプルにつき2つ返します |
-| `voice_1`から`voice_9`、`voice_3a`、`voice_3b`、`voice_3c`、`misc_27`から`misc_30`、`echo_22`から`echo_30` | `PIPELINE`が指定するステップです。`clock()`がこれらを呼び出すので、呼び出し側が呼ぶ必要はありません |
+| 呼び出し                                                                                                   | 効果                                                                                                                                                                                                                                               |
+| :--------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `read(address)`                                                                                            | `address & $7F`のレジスタを返します                                                                                                                                                                                                                |
+| `write(address, value)`                                                                                    | `value & $FF`を`address & $7F`に格納します。KONへの書き込みは次のKONサンプルまでラッチされます。ENDXへの書き込みはENDXを0にクリアします                                                                                                            |
+| `reset()`                                                                                                  | コーパスを記録した実装である`snes_spc`でのリセットラインの動作です。すべてのレジスタとすべてのラッチをクリアし、`FLG`を`$E0`に、ノイズジェネレータを`$4000`に、1サンプルおきのトグルを1に設定し、8つのボイスすべてを無音にします。チップを返します |
+| `clock()`                                                                                                  | 現在のクロックについて`PIPELINE`が指定するステップを実行し、32クロックのうち次のクロックに進みます                                                                                                                                                 |
+| `run(clocks)`                                                                                              | `clock()`をその回数だけ実行します                                                                                                                                                                                                                  |
+| `render(samples)`                                                                                          | `samples`の32倍のクロックを実行し、出力を左右の値を交互に並べて、1サンプルにつき2つ返します                                                                                                                                                        |
+| `voice_1`から`voice_9`、`voice_3a`、`voice_3b`、`voice_3c`、`misc_27`から`misc_30`、`echo_22`から`echo_30` | `PIPELINE`が指定するステップです。`clock()`がこれらを呼び出すので、呼び出し側が呼ぶ必要はありません                                                                                                                                                |
 
 ### 状態
 
-| 属性 | 意味 |
-|:--|:--|
-| `model` | 正規のモデル名 |
-| `memory` | ボイスとエコーバッファが読み書きする64 KBのオーディオRAMオブジェクト |
-| `registers` | `bytearray`としての128個のレジスタ |
-| `voices` | 8つの`Voice`オブジェクト |
-| `phase` | 32クロックのうち次に実行されるクロック、0から31 |
-| `rendered` | 最後の`render`以降に生成された出力値 |
-| `gaussian` | このチップがリサンプリングに使うカーネル |
+| 属性        | 意味                                                                 |
+| :---------- | :------------------------------------------------------------------- |
+| `model`     | 正規のモデル名                                                       |
+| `memory`    | ボイスとエコーバッファが読み書きする64 KBのオーディオRAMオブジェクト |
+| `registers` | `bytearray`としての128個のレジスタ                                   |
+| `voices`    | 8つの`Voice`オブジェクト                                             |
+| `phase`     | 32クロックのうち次に実行されるクロック、0から31                      |
+| `rendered`  | 最後の`render`以降に生成された出力値                                 |
+| `gaussian`  | このチップがリサンプリングに使うカーネル                             |
 
 `Voice`は`index`、`bit`、`base`を持ちます。BRRの状態は`brr_address`、`brr_offset`、`buffer`、`buffer_position`に、ピッチ位置は`interpolation`に、エンベロープは`envelope`、`hidden_envelope`、`envelope_mode`、`envelope_out`に保持し、ほかに`key_on_delay`を持ちます。
 
@@ -145,25 +145,25 @@ True 0xe0 0x00
 
 ### モジュールの内容
 
-| 名前 | 内容 |
-|:--|:--|
-| `sdsp.MODELS` | 正規名をキーとする`Model`レコード |
-| `sdsp.Model` | モデルレコードです。`name`、`summary`、`voices`、`registers`、`aliases`、`build(memory, **options)`を持ちます |
-| `sdsp.Memory(size=0x10000, fill=None, seed=UNSET_SEED)` | フラットなオーディオRAMです。`fill`はバイト値またはバイト列で、指定しない場合は内容が`seed`からスクランブルされます。アドレスは16ビットで折り返します |
-| `sdsp.SparseMemory(seed=UNSET_SEED)` | 同じ契約で、メモリを確保しません。未書き込みのアドレスはアドレスと`seed`から混ぜたバイトを返し、書き込まれた内容は`cells`が保持します |
-| `sdsp.scramble(size, seed=UNSET_SEED)` | `Memory`とレジスタファイルが起動時に保持するスクランブルされたバイト |
-| `sdsp.UNSET_SEED` | デフォルトのシード、`0x5A5A5A5A` |
-| `sdsp.Voice` | 1つのボイスとその状態 |
-| `sdsp.PIPELINE` | スケジュールです。32クロックそれぞれについて実行されるステップを持ち、各ステップはステップ名、またはステップ名とボイス番号です |
-| `sdsp.VOICE_COUNT`, `sdsp.REGISTER_COUNT` | 8と128 |
-| `sdsp.ENV_RELEASE`, `sdsp.ENV_ATTACK`, `sdsp.ENV_DECAY`, `sdsp.ENV_SUSTAIN` | エンベロープのフェーズで、`Voice.envelope_mode`が保持する形の0から3 |
-| `sdsp.COUNTER_RATES` | エンベロープクロックとノイズクロックの32個の周期で、サンプル単位、レートごとに1つ |
-| `sdsp.COUNTER_OFFSETS` | 周期を共有するレートをずらす32個のオフセット |
-| `sdsp.GAUSSIAN` | 512エントリの補間カーネル |
-| `sdsp.check_kernel(table)` | カーネルをタプルとして返すか、失敗した性質とエントリを示す`NotAKernel`を送出します |
-| `sdsp.UnknownModelError` | モデル名がない場合や未知の場合に送出されます。メッセージには受け付ける名前が列挙されます |
-| `sdsp.NotAKernel` | `check_kernel`が送出し、`gaussian`がその検査に失敗したときは`Chip`も送出します |
-| `sdsp.__version__` | インストールされているバージョン |
+| 名前                                                                        | 内容                                                                                                                                                  |
+| :-------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sdsp.MODELS`                                                               | 正規名をキーとする`Model`レコード                                                                                                                     |
+| `sdsp.Model`                                                                | モデルレコードです。`name`、`summary`、`voices`、`registers`、`aliases`、`build(memory, **options)`を持ちます                                         |
+| `sdsp.Memory(size=0x10000, fill=None, seed=UNSET_SEED)`                     | フラットなオーディオRAMです。`fill`はバイト値またはバイト列で、指定しない場合は内容が`seed`からスクランブルされます。アドレスは16ビットで折り返します |
+| `sdsp.SparseMemory(seed=UNSET_SEED)`                                        | 同じ契約で、メモリを確保しません。未書き込みのアドレスはアドレスと`seed`から混ぜたバイトを返し、書き込まれた内容は`cells`が保持します                 |
+| `sdsp.scramble(size, seed=UNSET_SEED)`                                      | `Memory`とレジスタファイルが起動時に保持するスクランブルされたバイト                                                                                  |
+| `sdsp.UNSET_SEED`                                                           | デフォルトのシード、`0x5A5A5A5A`                                                                                                                      |
+| `sdsp.Voice`                                                                | 1つのボイスとその状態                                                                                                                                 |
+| `sdsp.PIPELINE`                                                             | スケジュールです。32クロックそれぞれについて実行されるステップを持ち、各ステップはステップ名、またはステップ名とボイス番号です                        |
+| `sdsp.VOICE_COUNT`, `sdsp.REGISTER_COUNT`                                   | 8と128                                                                                                                                                |
+| `sdsp.ENV_RELEASE`, `sdsp.ENV_ATTACK`, `sdsp.ENV_DECAY`, `sdsp.ENV_SUSTAIN` | エンベロープのフェーズで、`Voice.envelope_mode`が保持する形の0から3                                                                                   |
+| `sdsp.COUNTER_RATES`                                                        | エンベロープクロックとノイズクロックの32個の周期で、サンプル単位、レートごとに1つ                                                                     |
+| `sdsp.COUNTER_OFFSETS`                                                      | 周期を共有するレートをずらす32個のオフセット                                                                                                          |
+| `sdsp.GAUSSIAN`                                                             | 512エントリの補間カーネル                                                                                                                             |
+| `sdsp.check_kernel(table)`                                                  | カーネルをタプルとして返すか、失敗した性質とエントリを示す`NotAKernel`を送出します                                                                    |
+| `sdsp.UnknownModelError`                                                    | モデル名がない場合や未知の場合に送出されます。メッセージには受け付ける名前が列挙されます                                                              |
+| `sdsp.NotAKernel`                                                           | `check_kernel`が送出し、`gaussian`がその検査に失敗したときは`Chip`も送出します                                                                        |
+| `sdsp.__version__`                                                          | インストールされているバージョン                                                                                                                      |
 
 ```python
 import sdsp
@@ -214,16 +214,16 @@ True True
 
 ### コマンドラインツール
 
-| コマンド | 動作 | 終了コード |
-|:--|:--|:--|
-| `python3 sdsp/doctor.py` | 上記のマシンとチェックアウトのレポート | 0は問題なし、1はチェックの失敗 |
-| `python3 -m conformance.corpus [file]` | コーパスの全ケースを再生し、出力のダイジェストを比較します | 0はすべて一致、1は不一致のケースあり、2はそのパスにコーパスなし |
-| `python3 -m conformance.capture <dump directory> <census out> [limit]` | 手元にある`.spc`ダンプから128個のDSPレジスタを読み取り、全数調査を書き出します | 0は書き出し完了、1はダンプが見つからない、2は引数の誤りまたはディレクトリなし |
-| `python3 -m conformance.documents [--check] [--only SUBSTRING]` | マニュアルを`docs/`に取得し、そのSHA-256を検証します。`--check`は取得せずに検証します | 0は検証済み、1は拒否または一致なし |
-| `python3 -m conformance.quotes` | [`conformance/hardware.json`](conformance/hardware.json)にある引用文をすべてマニュアル内で探します | 0はすべての引用の所在を確認したか、このマシンにマニュアルがない、1はそれ以外 |
-| `python3 -m conformance.speed` | 1秒あたりの`clock()`呼び出し回数を、下限90,000に対して計測します | 0は下限以上、1は下限未満 |
-| `python3 -m conformance.links` | このREADMEのすべてのアドレスを調べます | 0はすべてのアドレスが有効、1はHTTP 404または410を返すアドレスあり |
-| `python3 -m conformance.package <wheel>` | ビルドしたwheelがすべてのモジュールを含み、テストを含まないことを確認します | 0は問題なし、1は不備ありまたはwheelなし、2は引数なし |
+| コマンド                                                               | 動作                                                                                               | 終了コード                                                                    |
+| :--------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------- |
+| `python3 sdsp/doctor.py`                                               | 上記のマシンとチェックアウトのレポート                                                             | 0は問題なし、1はチェックの失敗                                                |
+| `python3 -m conformance.corpus [file]`                                 | コーパスの全ケースを再生し、出力のダイジェストを比較します                                         | 0はすべて一致、1は不一致のケースあり、2はそのパスにコーパスなし               |
+| `python3 -m conformance.capture <dump directory> <census out> [limit]` | 手元にある`.spc`ダンプから128個のDSPレジスタを読み取り、全数調査を書き出します                     | 0は書き出し完了、1はダンプが見つからない、2は引数の誤りまたはディレクトリなし |
+| `python3 -m conformance.documents [--check] [--only SUBSTRING]`        | マニュアルを`docs/`に取得し、そのSHA-256を検証します。`--check`は取得せずに検証します              | 0は検証済み、1は拒否または一致なし                                            |
+| `python3 -m conformance.quotes`                                        | [`conformance/hardware.json`](conformance/hardware.json)にある引用文をすべてマニュアル内で探します | 0はすべての引用の所在を確認したか、このマシンにマニュアルがない、1はそれ以外  |
+| `python3 -m conformance.speed`                                         | 1秒あたりの`clock()`呼び出し回数を、下限90,000に対して計測します                                   | 0は下限以上、1は下限未満                                                      |
+| `python3 -m conformance.links`                                         | このREADMEのすべてのアドレスを調べます                                                             | 0はすべてのアドレスが有効、1はHTTP 404または410を返すアドレスあり             |
+| `python3 -m conformance.package <wheel>`                               | ビルドしたwheelがすべてのモジュールを含み、テストを含まないことを確認します                        | 0は問題なし、1は不備ありまたはwheelなし、2は引数なし                          |
 
 ## 32クロックのスケジュール
 
@@ -273,15 +273,15 @@ s-dsp s-dsp s-dsp
 
 ## 正しいか
 
-| 対象 | 照合先 | 根拠の種類 |
-|:--|:--|:--|
-| レジスタマップ | Nintendoの表3-7-1、このモデルが名前を付けるすべてのアドレス | メーカー |
-| レート表 | 表3-7-4のノイズクロック、全32行 | メーカー |
-| アタック時間 | 表3-7-2、全16行 | メーカー |
-| ディケイ時間とサステイン時間 | 表3-7-2、全39行、マニュアルに記載のない終点1つに対して | メーカー、相対値 |
-| チップ全体の出力 | 240ケース、23,040サンプル、`snes_spc 0.9.0`に対して | 別の実装 |
-| コンソールでのチェック | Shay Greenの`spc_dsp6`カートリッジの判定104件のうち97件が一致 | コンソール上で取得した値 |
-| 補間カーネル | 長さ、形状、4タップの合計 | 自己チェックのみ、成果物なし |
+| 対象                         | 照合先                                                        | 根拠の種類                   |
+| :--------------------------- | :------------------------------------------------------------ | :--------------------------- |
+| レジスタマップ               | Nintendoの表3-7-1、このモデルが名前を付けるすべてのアドレス   | メーカー                     |
+| レート表                     | 表3-7-4のノイズクロック、全32行                               | メーカー                     |
+| アタック時間                 | 表3-7-2、全16行                                               | メーカー                     |
+| ディケイ時間とサステイン時間 | 表3-7-2、全39行、マニュアルに記載のない終点1つに対して        | メーカー、相対値             |
+| チップ全体の出力             | 240ケース、23,040サンプル、`snes_spc 0.9.0`に対して           | 別の実装                     |
+| コンソールでのチェック       | Shay Greenの`spc_dsp6`カートリッジの判定104件のうち97件が一致 | コンソール上で取得した値     |
+| 補間カーネル                 | 長さ、形状、4タップの合計                                     | 自己チェックのみ、成果物なし |
 
 [`conformance/hardware.json`](conformance/hardware.json)はマニュアルの各数値をそのページとともに保持し、[`conformance/hardware.test.py`](conformance/hardware.test.py)はそれらを、駆動したパートの動作とパッケージが公開する表に照らして確認します。マニュアルのテキストレイヤーは図表の手前で途切れているので、すべての表はレンダリングしたページ画像から読み取りました。`python3 -m conformance.quotes`はマニュアル内で28個の引用文の所在を確認します。
 
@@ -299,11 +299,11 @@ s-dsp s-dsp s-dsp
 
 `check_kernel`は、与えられた表を補間器が必要とする条件に照らして検査します。
 
-| 性質 | チップがそれを必要とする理由 |
-|:--|:--|
-| 512エントリ | 補間器は`forward + 256`までインデックスします |
-| すべてのタップが符号付き16ビットワード | 乗算が符号付き16ビットです |
-| 0から上昇し、決して下がらない | 下がるとカーブが反転します |
+| 性質                                                 | チップがそれを必要とする理由                                                  |
+| :--------------------------------------------------- | :---------------------------------------------------------------------------- |
+| 512エントリ                                          | 補間器は`forward + 256`までインデックスします                                 |
+| すべてのタップが符号付き16ビットワード               | 乗算が符号付き16ビットです                                                    |
+| 0から上昇し、決して下がらない                        | 下がるとカーブが反転します                                                    |
 | 各位置の4タップの合計が2048で、誤差0.2パーセント以内 | そうでないと、ボイスの音量が2つのサンプルの間のどこに位置するかに左右されます |
 
 異なる2つの表が通ることもあるので、通ったということは、その表がチップのものでありうるという意味です。カーネルはチップごとに保持されるので、1つのプロセス内の2つのチップが異なる表を持つことができます。
@@ -332,13 +332,13 @@ SPCダンプは、音楽そのものである64 KBのオーディオRAMと、ド
 
 ## 開発
 
-| 必要なもの | 場所 |
-|:--|:--|
-| すべてのゲートと実行順序 | [CONTRIBUTING.md](CONTRIBUTING.md) |
-| コーディングエージェント向けの同じ内容 | [AGENTS.md](AGENTS.md) |
-| このリポジトリがファミリーのほかのリポジトリと共有する標準 | [FAMILY.md](FAMILY.md) |
-| バグ報告 | [GitHub Issues](https://github.com/gufranco/sony-s-dsp-python/issues) |
-| セキュリティ報告 | [SECURITY.md](SECURITY.md) |
+| 必要なもの                                                 | 場所                                                                  |
+| :--------------------------------------------------------- | :-------------------------------------------------------------------- |
+| すべてのゲートと実行順序                                   | [CONTRIBUTING.md](CONTRIBUTING.md)                                    |
+| コーディングエージェント向けの同じ内容                     | [AGENTS.md](AGENTS.md)                                                |
+| このリポジトリがファミリーのほかのリポジトリと共有する標準 | [FAMILY.md](FAMILY.md)                                                |
+| バグ報告                                                   | [GitHub Issues](https://github.com/gufranco/sony-s-dsp-python/issues) |
+| セキュリティ報告                                           | [SECURITY.md](SECURITY.md)                                            |
 
 ```bash
 uvx ruff@0.16.3 format --check .
@@ -351,7 +351,7 @@ python3 sdsp/core.test.py
 
 ## 参考文献
 
-- *SNES Development Manual, Book I*, Section 3, Nintendo of America Inc., 日付なし。240ページ、21,022,582バイト、SHA-256 `f1405241000046abba7849376d2ec53cf85f1ad2e9950d69a7c2cf1f3ff6b791`。再配布はできず、このリポジトリには含まれていません。`python3 -m conformance.documents`がこれを https://archive.org/download/SNESDevManual/book1_text.pdf から`docs/`にダウンロードし、それ以外のファイルは拒否します。Sonyはこのチップのデータシートを公開していません。
+- _SNES Development Manual, Book I_, Section 3, Nintendo of America Inc., 日付なし。240ページ、21,022,582バイト、SHA-256 `f1405241000046abba7849376d2ec53cf85f1ad2e9950d69a7c2cf1f3ff6b791`。再配布はできず、このリポジトリには含まれていません。`python3 -m conformance.documents`がこれを https://archive.org/download/SNESDevManual/book1_text.pdf から`docs/`にダウンロードし、それ以外のファイルは拒否します。Sonyはこのチップのデータシートを公開していません。
 - Shay Greenによる`snes_spc 0.9.0`です。snes9x 1.63が`apu/bapu/dsp/SPC_DSP.cpp`に収録している形のもので、コーパスのオーディオに使います。[`conformance/ref/Dockerfile`](conformance/ref/Dockerfile)がsnes9xの`1.63`タグからビルドし、コピーは同梱していません。
 - Shay Greenの`spc_dsp6`テストカートリッジです。[`conformance/cartridge.json`](conformance/cartridge.json)にある104件のコンソール判定に使います。
 
