@@ -8,7 +8,7 @@ Sony S-DSPサウンドジェネレータのPython実装です。実チップと�
 [![Release](https://img.shields.io/github/v/release/gufranco/sony-s-dsp-python)](https://github.com/gufranco/sony-s-dsp-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-実際の音楽ダンプから取った**240**個のレジスタ状態を**23,040**サンプル分再生し、`snes_spc 0.9.0`に対する不一致は**0**件、コンソール上で取得したチェック**104**件のすべてが一致、マニュアル内で所在を確認した引用が**28**件、テストが**857**件、ステートメントとブランチのカバレッジが**100%**、依存関係はありません。
+実際の音楽ダンプから取った**240**個のレジスタ状態を**23,040**サンプル分再生し、`snes_spc 0.9.0`に対する不一致は**0**件、コンソール上で取得したチェック**104**件のすべてが一致、マニュアル内で所在を確認した引用が**28**件、テストが**861**件、ステートメントとブランチのカバレッジが**100%**、依存関係はありません。
 
 ```python
 import sdsp
@@ -312,7 +312,7 @@ s-dsp s-dsp s-dsp
 
 Shay Greenによる`snes_spc 0.9.0`は、snes9xが`apu/bapu/dsp/SPC_DSP.cpp`に収録しているもので、マニュアルが及ばないすべて、つまりオーディオそのものを決めています。これとの一致はそのプログラムとの一致であり、[`conformance/divergences.json`](conformance/divergences.json)はそのことを最初のエントリとして、重大度highで記録しています。`spc_dsp6`カートリッジも同じ作者によるものなので、この2つは2つではなく1つの情報源です。
 
-カートリッジは、コンソール上で取得した期待値を持つチェックを収録しています。[sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python)のオーディオユニットを通して駆動すると、そのうち104件がここで判定に至り、104件すべてが一致します。[`conformance/cartridge.json`](conformance/cartridge.json)がすべての判定を保持し、[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)がかつて一致しなかった7件の3つの原因を挙げています。
+カートリッジは、コンソール上で取得した期待値を持つチェックを収録しています。[sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python)のオーディオユニットを通して駆動すると、そのうち104件がここで判定に至り、104件すべてが一致します。[`conformance/cartridge.json`](conformance/cartridge.json)がすべての判定を保持し、[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)がかつて一致しなかった7件の3つの原因を挙げています。工場用およびサービス用の4本、Burn-in Rev D、SNSP Aging 1.02、Control Deck Tester、Aging Program 1.00は、エコー領域、エコー書き込みのタイミング、表と比べるエンベロープをサブテストに含むセルフテストをアップロードします。同じ方法で動かすと4本ともすべてに合格し、同じファイルの`selfTests`に記録しています。
 
 ### コーパス
 

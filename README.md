@@ -8,7 +8,7 @@ English | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md) | [繁�
 [![Release](https://img.shields.io/github/v/release/gufranco/sony-s-dsp-python)](https://github.com/gufranco/sony-s-dsp-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**240** register states from real music dumps replayed for **23,040** samples, **0** failures against `snes_spc 0.9.0`, **104** of **104** checks taken on a console agree, **28** quotes located in the manual, **857** tests, **100%** statement and branch coverage, no dependencies
+**240** register states from real music dumps replayed for **23,040** samples, **0** failures against `snes_spc 0.9.0`, **104** of **104** checks taken on a console agree, **28** quotes located in the manual, **861** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 import sdsp
@@ -312,7 +312,7 @@ Two different tables can pass, so passing means the table could be the part's. T
 
 `snes_spc 0.9.0` by Shay Green, which snes9x carries at `apu/bapu/dsp/SPC_DSP.cpp`, decides everything the manual does not reach, which is the audio itself. Agreement with it is agreement with that program, and [`conformance/divergences.json`](conformance/divergences.json) records that as its first entry, at severity high. The same author wrote the `spc_dsp6` cartridge, so the two are one source, not two.
 
-The cartridge carries checks with expectations taken on a console. Driven through the audio unit in [sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python), 104 of them reach a verdict here and all 104 agree. [`conformance/cartridge.json`](conformance/cartridge.json) holds every verdict, and [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) names the three causes of the seven that used to disagree.
+The cartridge carries checks with expectations taken on a console. Driven through the audio unit in [sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python), 104 of them reach a verdict here and all 104 agree. [`conformance/cartridge.json`](conformance/cartridge.json) holds every verdict, and [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) names the three causes of the seven that used to disagree. Four factory and service cartridges, Burn-in revision D, SNSP Aging 1.02, the Control Deck Tester and Aging Program 1.00, upload a self-test whose sub-tests include the echo region, the echo writer's timing and the envelope against a table; driven the same way, all four pass every one, recorded under `selfTests` in the same file.
 
 ### The corpus
 

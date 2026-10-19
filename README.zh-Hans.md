@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/sony-s-dsp-python)](https://github.com/gufranco/sony-s-dsp-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-来自真实音乐转储的 **240** 个寄存器状态重放 **23,040** 个采样，与 `snes_spc 0.9.0` 对比 **0** 处不一致，在主机上取得的 **104** 项检查全部一致，在手册中定位到 **28** 处引文，**857** 个测试，**100%** 语句与分支覆盖率，无依赖
+来自真实音乐转储的 **240** 个寄存器状态重放 **23,040** 个采样，与 `snes_spc 0.9.0` 对比 **0** 处不一致，在主机上取得的 **104** 项检查全部一致，在手册中定位到 **28** 处引文，**861** 个测试，**100%** 语句与分支覆盖率，无依赖
 
 ```python
 import sdsp
@@ -312,7 +312,7 @@ s-dsp s-dsp s-dsp
 
 Shay Green 编写的 `snes_spc 0.9.0`，snes9x 将其收录在 `apu/bapu/dsp/SPC_DSP.cpp`，决定了手册未涉及的所有内容，也就是音频本身。与它一致就是与那个程序一致，[`conformance/divergences.json`](conformance/divergences.json) 将此记为第一条，严重程度为高。`spc_dsp6` 卡带出自同一作者，所以两者是一个来源，而不是两个。
 
-该卡带包含的检查，其预期值是在主机上取得的。通过 [sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python) 中的音频单元驱动，其中 104 项在这里得出判定，全部 104 项一致。[`conformance/cartridge.json`](conformance/cartridge.json) 保存每项判定，[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) 列出了曾经不一致的 7 项的三个原因。
+该卡带包含的检查，其预期值是在主机上取得的。通过 [sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python) 中的音频单元驱动，其中 104 项在这里得出判定，全部 104 项一致。[`conformance/cartridge.json`](conformance/cartridge.json) 保存每项判定，[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) 列出了曾经不一致的 7 项的三个原因。四盘工厂与维修卡带，Burn-in Rev D、SNSP Aging 1.02、Control Deck Tester 和 Aging Program 1.00，上传一个自检程序，其子测试包括回声区域、回声写入的时序和与表格比较的包络；以同样方式驱动，四盘全部通过每一项，记录在同一文件的 `selfTests` 中。
 
 ### 语料库
 

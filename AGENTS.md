@@ -86,9 +86,14 @@ replays them with no image present. A change to this part reaches that run only
 once sony-s-smp-python moves its pin, so run it there before calling a change to
 the schedule finished.
 
-**The rest wait on `snes-machine`**, a whole-machine member no plan names yet:
-the burn-in test, the SNES Test Program, the NTF 2.5 test and both 240p Test
-Suite builds, whose sound tests are judged by ear or on a screen.
+**Four more run there and are recorded here.** Burn-in revision D, SNSP Aging
+1.02, the Control Deck Tester and Aging Program 1.00 upload a self-test whose
+sub-tests include this part: the echo region, the echo writer's timing and the
+envelope against the program's own table. All four pass every one in
+sony-s-smp-python's `conformance/selftest.py`, and the measurements are in
+`conformance/cartridge.json` under `selfTests`. The cartridges mask the envelope
+sub-test with `AND #$FB`; MAME fails it and this part passes it, and no console
+value is known, so it is this model's measurement and nothing more.
 
 ## Every gate, in the order to run them
 
