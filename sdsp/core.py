@@ -48,6 +48,10 @@ V_OUTX = 0x09
 
 FLG_RESET = 0x80
 
+UNSIGNED = 0xFFFFFFFF
+
+BEND = 0x600
+
 
 class Chip(Echo):
     __slots__ = (
@@ -188,7 +192,7 @@ class Chip(Echo):
                     envelope -= envelope >> 8
                 else:
                     envelope += 0x20
-                    if mode > 6 and voice.hidden_envelope >= 0x600:
+                    if mode > 6 and voice.hidden_envelope & UNSIGNED >= BEND:
                         envelope += 0x8 - 0x20
 
         if (envelope >> 8) == (data >> 5) and voice.envelope_mode == ENV_DECAY:

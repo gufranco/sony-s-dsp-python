@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/sony-s-dsp-python)](https://github.com/gufranco/sony-s-dsp-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-来自真实音乐转储的 **240** 个寄存器状态重放 **23,040** 个采样，与 `snes_spc 0.9.0` 对比 **0** 处不一致，在主机上取得的 **104** 项检查中 **97** 项一致，在手册中定位到 **28** 处引文，**828** 个测试，**100%** 语句与分支覆盖率，无依赖
+来自真实音乐转储的 **240** 个寄存器状态重放 **23,040** 个采样，与 `snes_spc 0.9.0` 对比 **0** 处不一致，在主机上取得的 **104** 项检查中 **97** 项一致，在手册中定位到 **28** 处引文，**829** 个测试，**100%** 语句与分支覆盖率，无依赖
 
 ```python
 import sdsp

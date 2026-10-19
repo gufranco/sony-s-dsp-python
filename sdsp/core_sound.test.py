@@ -33,6 +33,10 @@ EDL = 0x7D
 ECHO_WRITES_OFF = 0x20
 NOISE_EVERY_SAMPLE = 0x1F
 FULL_NEGATIVE_OUTX = 0x81
+DIRECT_ONE_STEP = 0x01
+LINEAR_DECREASE_EVERY_SAMPLE = 0x9F
+BENT_INCREASE_EVERY_SAMPLE = 0xFF
+BENT_SLOW_STEP = 0x08
 
 
 def a_voice_ram(
@@ -149,6 +153,21 @@ class EnvelopeTest(unittest.TestCase):
 
         # Assert
         self.assertGreater(dsp.voices[0].hidden_envelope, 0x600)
+
+    def test_bent_increase_takes_the_slow_step_after_a_decrease_went_below_zero(self) -> None:
+        # Arrange
+        dsp = keyed_on(a_voice_ram())
+        dsp.write(GAIN, DIRECT_ONE_STEP)
+        dsp.render(8)
+        dsp.write(GAIN, LINEAR_DECREASE_EVERY_SAMPLE)
+        dsp.render(1)
+        dsp.write(GAIN, BENT_INCREASE_EVERY_SAMPLE)
+
+        # Act
+        dsp.render(1)
+
+        # Assert
+        self.assertEqual(dsp.voices[0].envelope, BENT_SLOW_STEP)
 
     def test_an_attack_climbs_from_nothing(self) -> None:
         # Arrange
