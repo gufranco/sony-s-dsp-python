@@ -1,0 +1,67 @@
+{
+  "cartridges": [
+    {
+      "id": "blargg-spc-dsp6",
+      "title": "Shay Green's spc_dsp6",
+      "sha256": "b12038f865536a33003c9887e6f86fcbcb526b7f1766526ab30cb74b7380aa9a",
+      "source": "https://gitlab.com/higan/snes-test-roms at 26e8aa91e0d3b90b901e7e693bc4a8244b391d7b",
+      "file": "blargg-spc-6/spc_dsp6.sfc",
+      "exercises": "the sound generator's echo, envelopes, registers and the timing of its thirty two step schedule beside the processor",
+      "outcome": "run",
+      "runs": "run by sony-s-smp-python, which composes this member, through its conformance/cartridges.py on a cut-down console; the verdicts are recorded here",
+      "heldBy": [
+        "conformance/cartridge.test.py::TheRecordedVerdictsTest.test_every_check_spc_dsp6_reaches_agrees_with_a_console"
+      ]
+    },
+    {
+      "id": "burn-in-rev-d",
+      "title": "Burn-in test cartridge, revision D",
+      "sha256": "092e80eab0d3a5300a30f7d41cf4e454cdb79cc0fac66f052567d37322cb891f",
+      "source": "the local library of test images, snes-roms/5 Tools & Service Test Carts/",
+      "file": "Burn-in - Test Cartridge (USA) (Rev D).sfc",
+      "exercises": "a test whose text names a sound test, played through the whole audio unit, with its verdict on a screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "snes-test-program",
+      "title": "SNES Test Program",
+      "sha256": "f732685db2bfc93e995128e015657165fbaaa2dd8723e7655507fda4ddc2a3a9",
+      "source": "the local library of test images, snes-roms/5 Tools & Service Test Carts/",
+      "file": "SNES Test Program (U).sfc",
+      "exercises": "a test whose text names a sound test, played through the whole audio unit, with its verdict on a screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "ntf-2-5-rev-a",
+      "title": "NTF 2.5 test cartridge, revision A",
+      "sha256": "3a3ba7500728920093ff48caf5baac0c1ec9b19aacda4fe4dce8afbdd69e859e",
+      "source": "the local library of test images, snes-roms/5 Tools & Service Test Carts/",
+      "file": "NTF 2.5 Test Cartridge (USA) (Rev A).sfc",
+      "exercises": "a test whose text names a sound test, played through the whole audio unit, with its verdict on a screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "240p-test-suite-1-061-ntsc",
+      "title": "240p Test Suite 1.061, NTSC",
+      "sha256": "fe88b5db3f5612e36f1c8f662839d5d3d32c8959ee7f766ca2d5bb3318d42900",
+      "source": "the local library of test images, snes-roms/5 Tools & Service Test Carts/",
+      "file": "240p Test Suite (World) (v1.061) (NTSC) (Program) (Aftermarket) (Unl).sfc",
+      "exercises": "a test whose text names a sound test, played through the whole audio unit, with its verdict on a screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    },
+    {
+      "id": "240p-test-suite-1-061-pal",
+      "title": "240p Test Suite 1.061, PAL",
+      "sha256": "16068420d905a4cc7710770428dcd7cb526c30bb47e201dcb0a6bd85a099b6aa",
+      "source": "the local library of test images, snes-roms/5 Tools & Service Test Carts/",
+      "file": "240p Test Suite (World) (v1.061) (PAL) (Program) (Aftermarket) (Unl).sfc",
+      "exercises": "a test whose text names a sound test, played through the whole audio unit, with its verdict on a screen",
+      "outcome": "hosted",
+      "needs": "snes-machine"
+    }
+  ]
+}

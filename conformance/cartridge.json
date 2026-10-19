@@ -426,8 +426,8 @@
   "verified": true,
   "evidence": "104 of 104 checks agree with a value taken on a console, byte for byte (as of 2026-10-19).",
   "howToSettleIt": "Settled for what the cartridge reaches. Seven used to disagree. Four were the hidden envelope on the gain and key-on paths, where this model tested the previous hidden envelope against 0x600 as a signed number and snes_spc and ares test it unsigned. Two, V8 outx and V9 envx, were one cause: a write to OUTX or ENVX did not reach the value the schedule was holding to write there. The seventh, Misc/$F0-$FF are not ram, was the audio unit's register file in sony-s-smp-python.",
-  "producedBy": "A cut-down console driving the cartridge into a composed audio unit. It is not carried by any member of this family and deliberately so: a console processor does not belong in a model of the sound generator. sony-s-smp-python records why under what is deliberately not modelled. What is carried is this record, so the verdicts can be disputed without rebuilding the harness.",
-  "howToRepeat": "Compose mos65xx-python with sony-s-smp-python, decode the cartridge as LoROM, wire $2140-$2143 to the unit's four ports, and watch for the four-byte comparison against $dc through $df that every one of his checks ends with.",
+  "producedBy": "sony-s-smp-python's conformance/cartridges.py, with this member pinned at aa997bba907f7144b9ed2eca02f43bb00669e4cf: a 65816 from mos65xx-python on a cut-down console drives the cartridge into the composed audio unit. A console processor does not belong in a model of the sound generator, so the runner lives in the member that composes the unit, and this record is what is kept here so the verdicts can be disputed without it.",
+  "howToRepeat": "In sony-s-smp-python, with a boot program and the cartridge present: SSMP_CARTRIDGE_DIR=<folder> python3 -m conformance.cartridges. Its own conformance/cartridge.json carries the same 104 checks with the four bytes a console produced and the four this model did.",
   "cartridge": {
     "name": "spc_dsp6.sfc",
     "sha256": "b12038f865536a33003c9887e6f86fcbcb526b7f1766526ab30cb74b7380aa9a",

@@ -63,6 +63,33 @@ A change that computes the same sample in a different order is not a smaller
 change; it is a different part. Anything that touches the schedule needs the
 corpus run, not just the unit tests.
 
+## Test cartridges
+
+[`conformance/testroms.json`](conformance/testroms.json) lists every test
+cartridge that exercises this part, each pinned by SHA-256 and none carried.
+
+**One runs, in the member that composes this one.** Shay Green's `spc_dsp6.sfc`
+needs a processor, the audio unit around it and a console to upload it, so it
+runs in [sony-s-smp-python](https://github.com/gufranco/sony-s-smp-python),
+whose `conformance/cartridges.py` drives it from a cut-down console with this
+member pinned as a submodule:
+
+```bash
+cd ../sony-s-smp-python
+SSMP_CARTRIDGE_DIR=/path/to/cartridges python3 -m conformance.cartridges
+```
+
+Its 104 verdicts are recorded here in
+[`conformance/cartridge.json`](conformance/cartridge.json), all agreeing with a
+console, and [`conformance/cartridge.test.py`](conformance/cartridge.test.py)
+replays them with no image present. A change to this part reaches that run only
+once sony-s-smp-python moves its pin, so run it there before calling a change to
+the schedule finished.
+
+**The rest wait on `snes-machine`**, a whole-machine member no plan names yet:
+the burn-in test, the SNES Test Program, the NTF 2.5 test and both 240p Test
+Suite builds, whose sound tests are judged by ear or on a screen.
+
 ## Every gate, in the order to run them
 
 ```bash
@@ -183,6 +210,8 @@ conformance/
   capture.py     reading dumps a reader owns, to add to the corpus
   hardware.json  what Nintendo printed, fact by fact, with the page
   divergences.json where sources part, and what would settle each
+  cartridge.json the verdicts spc_dsp6 reached when sony-s-smp-python ran it
+  testroms.json  every test cartridge that exercises this part
   quotes.py      looks for every quoted sentence in the document it cites
   register_rig.py a part wired the way the register tests drive it
   speed.py       the throughput floor
