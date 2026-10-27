@@ -76,7 +76,7 @@ member pinned as a submodule:
 
 ```bash
 cd ../sony-s-smp-python
-SSMP_CARTRIDGE_DIR=/path/to/cartridges python3 -m conformance.cartridges
+python3 -m conformance.cartridges
 ```
 
 Its 104 verdicts are recorded here in
@@ -94,6 +94,14 @@ sony-s-smp-python's `conformance/selftest.py`, and the measurements are in
 `conformance/cartridge.json` under `selfTests`. The cartridges mask the envelope
 sub-test with `AND #$FB`; MAME fails it and this part passes it, and no console
 value is known, so it is this model's measurement and nothing more.
+
+## Files kept in `external/`
+
+This member reads no file it may not ship.
+[`artifacts.manifest.json`](artifacts.manifest.json) says so with an empty
+`external` mapping, per FAMILY.md's "Where the files a member reads are kept".
+The test cartridges above sit in `sony-s-smp-python`'s `external/cartridges/`,
+where the member that runs them keeps them.
 
 ## Every gate, in the order to run them
 
@@ -210,6 +218,7 @@ conformance/
   family_*.test.py the family standard, held to this repository, one topic a file
   family_member.py what this member answers to them
   family_shared.py what more than one of them reads
+  external.py       which files in external/ are here, verified, missing or wrong
   corpus.json    real game configurations, and what they produce
   corpus.py      replaying them and comparing sample for sample
   capture.py     reading dumps a reader owns, to add to the corpus
@@ -221,6 +230,8 @@ conformance/
   register_rig.py a part wired the way the register tests drive it
   speed.py       the throughput floor
   ref/           the reference driver, built rather than vendored
+external/           empty: nothing here is read from outside the repository, never committed
+artifacts.manifest.json  every file in external/, by size and every digest
 ```
 
 ## Things that will bite you

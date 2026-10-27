@@ -1,0 +1,4 @@
+{
+  "externalNote": "This repository reads no file it may not ship. Its test cartridges run in sony-s-smp-python, which keeps them in its own external/. python3 -m conformance.external reports this mapping, which is empty.",
+  "external": {}
+}
