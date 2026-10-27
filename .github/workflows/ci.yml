@@ -21,6 +21,7 @@ jobs:
   lint:
     name: Format and lint
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
 
@@ -73,6 +74,7 @@ jobs:
   types:
     name: Types
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
 
@@ -91,6 +93,7 @@ jobs:
   test:
     name: Tests on Python ${{ matrix.python }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -125,6 +128,7 @@ jobs:
   speed:
     name: Throughput
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
 
@@ -138,6 +142,7 @@ jobs:
   quotes:
     name: Every quoted sentence, against the document it came from
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
 
@@ -151,6 +156,7 @@ jobs:
   package:
     name: package
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
 
