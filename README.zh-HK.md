@@ -4,9 +4,11 @@
 
 [English](README.md) | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md) | 繁體中文（香港）
 
-[![CI](https://github.com/gufranco/sony-s-dsp-python/actions/workflows/ci.yml/badge.svg)](https://github.com/gufranco/sony-s-dsp-python/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/gufranco/sony-s-dsp-python)](https://github.com/gufranco/sony-s-dsp-python/releases)
-[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![ci](https://img.shields.io/github/actions/workflow/status/gufranco/sony-s-dsp-python/ci.yml?branch=main&style=flat-square&label=ci)](https://github.com/gufranco/sony-s-dsp-python/actions/workflows/ci.yml)
+[![release](https://img.shields.io/github/v/release/gufranco/sony-s-dsp-python?style=flat-square&label=release)](https://github.com/gufranco/sony-s-dsp-python/releases/latest)
+[![coverage](https://img.shields.io/badge/coverage-100%25-brightgreen?style=flat-square)](https://github.com/gufranco/sony-s-dsp-python/actions/workflows/ci.yml)
+[![openssf scorecard](https://img.shields.io/ossf-scorecard/github.com/gufranco/sony-s-dsp-python?style=flat-square&label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/gufranco/sony-s-dsp-python)
+[![license](https://img.shields.io/github/license/gufranco/sony-s-dsp-python?style=flat-square&label=license)](LICENSE)
 
 來自真實音樂傾印的 **240** 個暫存器狀態重播 **23,040** 個樣本，與 `snes_spc 0.9.0` 相比 **0** 個失敗，在主機上取得的 **104** 項檢查全部一致，在手冊中找到 **28** 段引文，**913** 項測試，**100%** 語句和分支覆蓋率，沒有依賴項
 
