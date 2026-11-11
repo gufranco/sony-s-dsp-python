@@ -10,7 +10,7 @@ English | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md) | [繁�
 [![openssf scorecard](https://img.shields.io/ossf-scorecard/github.com/gufranco/sony-s-dsp-python?style=flat-square&label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/gufranco/sony-s-dsp-python)
 [![license](https://img.shields.io/github/license/gufranco/sony-s-dsp-python?style=flat-square&label=license)](LICENSE)
 
-**240** register states from real music dumps replayed for **23,040** samples, **0** failures against `snes_spc 0.9.0`, **104** of **104** checks taken on a console agree, **28** quotes located in the manual, **913** tests, **100%** statement and branch coverage, no dependencies
+**240** register states from real music dumps replayed for **23,040** samples, **0** failures against `snes_spc 0.9.0`, **104** of **104** checks taken on a console agree, **28** quotes located in the manual, **914** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 import sdsp

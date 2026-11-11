@@ -10,7 +10,7 @@
 [![openssf scorecard](https://img.shields.io/ossf-scorecard/github.com/gufranco/sony-s-dsp-python?style=flat-square&label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/gufranco/sony-s-dsp-python)
 [![license](https://img.shields.io/github/license/gufranco/sony-s-dsp-python?style=flat-square&label=license)](LICENSE)
 
-来自真实音乐转储的 **240** 个寄存器状态重放 **23,040** 个采样，与 `snes_spc 0.9.0` 对比 **0** 处不一致，在主机上取得的 **104** 项检查全部一致，在手册中定位到 **28** 处引文，**913** 个测试，**100%** 语句与分支覆盖率，无依赖
+来自真实音乐转储的 **240** 个寄存器状态重放 **23,040** 个采样，与 `snes_spc 0.9.0` 对比 **0** 处不一致，在主机上取得的 **104** 项检查全部一致，在手册中定位到 **28** 处引文，**914** 个测试，**100%** 语句与分支覆盖率，无依赖
 
 ```python
 import sdsp

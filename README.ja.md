@@ -10,7 +10,7 @@ Sony S-DSPサウンドジェネレータのPython実装です。実チップと�
 [![openssf scorecard](https://img.shields.io/ossf-scorecard/github.com/gufranco/sony-s-dsp-python?style=flat-square&label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/gufranco/sony-s-dsp-python)
 [![license](https://img.shields.io/github/license/gufranco/sony-s-dsp-python?style=flat-square&label=license)](LICENSE)
 
-実際の音楽ダンプから取った**240**個のレジスタ状態を**23,040**サンプル分再生し、`snes_spc 0.9.0`に対する不一致は**0**件、コンソール上で取得したチェック**104**件のすべてが一致、マニュアル内で所在を確認した引用が**28**件、テストが**913**件、ステートメントとブランチのカバレッジが**100%**、依存関係はありません。
+実際の音楽ダンプから取った**240**個のレジスタ状態を**23,040**サンプル分再生し、`snes_spc 0.9.0`に対する不一致は**0**件、コンソール上で取得したチェック**104**件のすべてが一致、マニュアル内で所在を確認した引用が**28**件、テストが**914**件、ステートメントとブランチのカバレッジが**100%**、依存関係はありません。
 
 ```python
 import sdsp
